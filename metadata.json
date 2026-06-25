@@ -1,0 +1,6 @@
+{
+  "name": "XiNote",
+  "description": "一款极简美观的记事本，支持Markdown实时预览、自定义卡片配色，并提供高自由度自定义、实时同步系统主题色及透明度的小组件功能。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
