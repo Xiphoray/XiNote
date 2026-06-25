@@ -1,5 +1,6 @@
 package com.example.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -89,6 +91,14 @@ fun EditNoteScreen(
     var contentValue by remember { mutableStateOf(TextFieldValue(note?.content ?: "")) }
     var colorHex by remember { mutableStateOf(note?.colorHex ?: "default") }
     var isPinned by remember { mutableStateOf(note?.isPinned ?: false) }
+
+    BackHandler {
+        if (title.isNotBlank() || (contentValue.text.isNotBlank() && contentValue.text != "# ")) {
+            viewModel.saveNote(title, contentValue.text, colorHex, isPinned)
+        } else {
+            viewModel.navigateToHome()
+        }
+    }
 
     // Synchronize state when note database values resolve
     LaunchedEffect(note) {
@@ -301,6 +311,19 @@ fun EditNoteScreen(
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
+                            if (title.isNotBlank()) {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                                )
+                            }
                             if (contentValue.text.isBlank()) {
                                 Text(
                                     Localization.getString("markdown_preview_empty", currentLanguage),
@@ -368,6 +391,19 @@ fun EditNoteScreen(
                                     .verticalScroll(rememberScrollState())
                                     .padding(16.dp)
                             ) {
+                                if (title.isNotBlank()) {
+                                    Text(
+                                        text = title,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(bottom = 12.dp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                                    )
+                                }
                                 if (contentValue.text.isBlank()) {
                                     Text(
                                         Localization.getString("no_content_preview", currentLanguage),

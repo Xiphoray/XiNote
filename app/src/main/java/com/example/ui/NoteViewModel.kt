@@ -87,6 +87,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         repository.triggerWidgetUpdate()
     }
 
+    fun triggerWidgetUpdate() {
+        repository.triggerWidgetUpdate()
+    }
+
     // Navigation triggers
     fun navigateToHome() {
         currentScreen.value = Screen.Home

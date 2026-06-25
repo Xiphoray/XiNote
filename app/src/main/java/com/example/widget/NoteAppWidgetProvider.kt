@@ -40,30 +40,67 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
 
                 val isDarkMode = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
-                // Build background color ARGB with high density palette colors
-                val alpha = (opacity * 2.55).toInt().coerceIn(0, 255)
-                val baseBgColor = if (isDarkMode) 0x1F1B1A else 0xF5DED8 // High Density warm base matching system theme color changes
-                val argbBgColor = (alpha shl 24) or (baseBgColor and 0x00FFFFFF)
+                // Build background color ARGB
+                val baseBgColor: Int
+                val textColorHeader: Int
+                val textColorTitle: Int
+                val textColorContent: Int
+                val dividerColor: Int
+                val plusIconColor: Int
 
-                // Text colors matching the High Density palette
-                val textColorHeader = if (isDarkMode) 0xFFECE0DF.toInt() else 0xFF1F1B1A.toInt()
-                val textColorTitle = if (isDarkMode) 0xFFECE0DF.toInt() else 0xFF1F1B1A.toInt()
-                val textColorContent = if (isDarkMode) 0xFFD8C2BE.toInt() else 0xFF4E4442.toInt()
-                val dividerColor = if (isDarkMode) 0x20FFB5A4 else 0x208F4C38
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    // Follow system-wide dynamic Material You color scheme on Android 12+
+                    baseBgColor = if (isDarkMode) {
+                        context.getColor(android.R.color.system_neutral1_900)
+                    } else {
+                        context.getColor(android.R.color.system_neutral1_100)
+                    }
+                    textColorHeader = if (isDarkMode) {
+                        context.getColor(android.R.color.system_neutral1_100)
+                    } else {
+                        context.getColor(android.R.color.system_neutral1_900)
+                    }
+                    textColorTitle = textColorHeader
+                    textColorContent = if (isDarkMode) {
+                        context.getColor(android.R.color.system_neutral1_300)
+                    } else {
+                        context.getColor(android.R.color.system_neutral1_700)
+                    }
+                    dividerColor = if (isDarkMode) {
+                        context.getColor(android.R.color.system_accent1_800)
+                    } else {
+                        context.getColor(android.R.color.system_accent1_100)
+                    }
+                    plusIconColor = if (isDarkMode) {
+                        context.getColor(android.R.color.system_accent1_200)
+                    } else {
+                        context.getColor(android.R.color.system_accent1_600)
+                    }
+                } else {
+                    // Fallback custom palette matching light/dark theme perfectly
+                    baseBgColor = if (isDarkMode) 0xFF1F1B1A.toInt() else 0xFFF5DED8.toInt()
+                    textColorHeader = if (isDarkMode) 0xFFECE0DF.toInt() else 0xFF1F1B1A.toInt()
+                    textColorTitle = textColorHeader
+                    textColorContent = if (isDarkMode) 0xFFD8C2BE.toInt() else 0xFF4E4442.toInt()
+                    dividerColor = if (isDarkMode) 0x20FFB5A4 else 0x208F4C38
+                    plusIconColor = if (isDarkMode) 0xFFFFB5A4.toInt() else 0xFF8F4C38.toInt()
+                }
+
+                val argbBgColor = (0xFF shl 24) or (baseBgColor and 0x00FFFFFF)
 
                 for (appWidgetId in appWidgetIds) {
                     val views = RemoteViews(context.packageName, R.layout.note_widget_layout)
 
-                    // 1. Background style
+                    // 1. Background style using setAlpha (universally supported Float RemoteView method)
                     views.setInt(R.id.widget_background_view, "setColorFilter", argbBgColor)
+                    views.setFloat(R.id.widget_background_view, "setAlpha", opacity / 100f)
 
                     // 2. Text colors
                     views.setTextViewText(R.id.widget_title, widgetTitleText)
                     views.setTextColor(R.id.widget_title, textColorHeader)
                     views.setInt(R.id.widget_divider, "setBackgroundColor", dividerColor)
 
-                    // Plus icon tint (accent color: #8F4C38 in light, #FFB5A4 in dark)
-                    val plusIconColor = if (isDarkMode) 0xFFFFB5A4.toInt() else 0xFF8F4C38.toInt()
+                    // Plus icon tint
                     views.setInt(R.id.btn_add_note, "setColorFilter", plusIconColor)
 
                     // 3. Click intent for the add button

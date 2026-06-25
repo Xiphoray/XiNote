@@ -38,14 +38,13 @@
                 android:id="@+id/btn_add_note"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:background="?android:attr/selectableItemBackground"
                 android:contentDescription="新增记事"
                 android:padding="4dp"
                 android:src="@drawable/ic_add" />
         </LinearLayout>
 
         <!-- Divider -->
-        <View
+        <FrameLayout
             android:id="@+id/widget_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -76,7 +75,6 @@
                 android:id="@+id/note_slot_1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?android:attr/selectableItemBackground"
                 android:orientation="vertical"
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp">
@@ -101,10 +99,10 @@
                     android:textSize="11sp" />
             </LinearLayout>
 
-            <View
+            <FrameLayout
                 android:id="@+id/note_divider_1"
                 android:layout_width="match_parent"
-                android:layout_height="0.5dp"
+                android:layout_height="1dp"
                 android:background="#F0F0F0" />
 
             <!-- Slot 2 -->
@@ -112,7 +110,6 @@
                 android:id="@+id/note_slot_2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?android:attr/selectableItemBackground"
                 android:orientation="vertical"
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp">
@@ -137,10 +134,10 @@
                     android:textSize="11sp" />
             </LinearLayout>
 
-            <View
+            <FrameLayout
                 android:id="@+id/note_divider_2"
                 android:layout_width="match_parent"
-                android:layout_height="0.5dp"
+                android:layout_height="1dp"
                 android:background="#F0F0F0" />
 
             <!-- Slot 3 -->
@@ -148,7 +145,6 @@
                 android:id="@+id/note_slot_3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?android:attr/selectableItemBackground"
                 android:orientation="vertical"
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp">

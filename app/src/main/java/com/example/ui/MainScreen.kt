@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -70,6 +72,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -133,12 +138,19 @@ fun MainScreen(
             }
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .statusBarsPadding()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .widthIn(max = 800.dp)
+                    .padding(innerPadding)
+                    .statusBarsPadding()
+            ) {
             // Search Bar & Header Toolbar
             Row(
                 modifier = Modifier
@@ -270,8 +282,16 @@ fun MainScreen(
                 val pinnedNotes = notes.filter { it.isPinned }
                 val otherNotes = notes.filter { !it.isPinned }
 
+                val configuration = LocalConfiguration.current
+                val screenWidthDp = configuration.screenWidthDp
+                val gridColumns = when {
+                    screenWidthDp >= 900 -> GridCells.Fixed(4)
+                    screenWidthDp >= 600 -> GridCells.Fixed(3)
+                    else -> GridCells.Fixed(2)
+                }
+
                 LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 160.dp),
+                    columns = gridColumns,
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -326,6 +346,7 @@ fun MainScreen(
             }
         }
     }
+}
 
     // Widget Customization Dialog
     if (showWidgetSettings) {
@@ -469,7 +490,11 @@ fun WidgetSettingsDialog(
         onDismissRequest = onDismiss,
         title = { Text(Localization.getString("widget_customization", currentLanguage), fontWeight = FontWeight.Bold) },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
                 Text(
                     text = Localization.getString("widget_customization_desc", currentLanguage),
                     style = MaterialTheme.typography.bodyMedium,

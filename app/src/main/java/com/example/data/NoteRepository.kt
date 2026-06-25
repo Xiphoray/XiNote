@@ -29,10 +29,20 @@ class NoteRepository(private val context: Context, private val noteDao: NoteDao)
     }
 
     fun triggerWidgetUpdate() {
-        val intent = Intent().apply {
-            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-            component = ComponentName(context, "com.example.widget.NoteAppWidgetProvider")
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val component = ComponentName(context, "com.example.widget.NoteAppWidgetProvider")
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(component)
+            if (appWidgetIds != null && appWidgetIds.isNotEmpty()) {
+                val intent = Intent().apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
+                    this.component = component
+                }
+                context.sendBroadcast(intent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        context.sendBroadcast(intent)
     }
 }

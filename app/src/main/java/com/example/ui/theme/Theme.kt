@@ -43,7 +43,7 @@ private val LightColorScheme =
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
-  dynamicColor: Boolean = false, // Set to false to force show the brand new custom High Density color palette
+  dynamicColor: Boolean = true, // Set to true to follow the system-wide dynamic Material You color scheme on Android 12+
   content: @Composable () -> Unit,
 ) {
   val colorScheme =

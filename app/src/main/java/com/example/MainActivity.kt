@@ -74,6 +74,13 @@ class MainActivity : ComponentActivity() {
         handleWidgetIntent(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::viewModel.isInitialized) {
+            viewModel.triggerWidgetUpdate()
+        }
+    }
+
     // Parses widget click action intents and navigates directly to edit/create screens
     private fun handleWidgetIntent(intent: Intent?) {
         if (intent == null) return
