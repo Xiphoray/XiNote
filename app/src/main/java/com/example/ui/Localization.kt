@@ -12,7 +12,7 @@ object Localization {
     private val translations = mapOf(
         AppLanguage.ZH to mapOf(
             "app_title" to "XiNote",
-            "search_placeholder" to "搜索记事标题或内容...",
+            "search_placeholder" to "搜索...",
             "widget_settings" to "小组件设置",
             "add_note" to "新增记事",
             "no_notes" to "无记事",
@@ -67,7 +67,7 @@ object Localization {
         ),
         AppLanguage.EN to mapOf(
             "app_title" to "XiNote",
-            "search_placeholder" to "Search note title or content...",
+            "search_placeholder" to "Search...",
             "widget_settings" to "Widget Settings",
             "add_note" to "Add Note",
             "no_notes" to "No Notes",
@@ -122,7 +122,7 @@ object Localization {
         ),
         AppLanguage.JA to mapOf(
             "app_title" to "XiNote",
-            "search_placeholder" to "タイトルや内容で検索...",
+            "search_placeholder" to "検索...",
             "widget_settings" to "ウィジェット設定",
             "add_note" to "メモを追加",
             "no_notes" to "メモがありません",
@@ -177,7 +177,7 @@ object Localization {
         ),
         AppLanguage.FR to mapOf(
             "app_title" to "XiNote",
-            "search_placeholder" to "Rechercher un titre ou un contenu...",
+            "search_placeholder" to "Rechercher...",
             "widget_settings" to "Paramètres du widget",
             "add_note" to "Ajouter une note",
             "no_notes" to "Aucune note",
@@ -232,7 +232,7 @@ object Localization {
         ),
         AppLanguage.ES to mapOf(
             "app_title" to "XiNote",
-            "search_placeholder" to "Buscar título o contenido...",
+            "search_placeholder" to "Buscar...",
             "widget_settings" to "Ajustes del widget",
             "add_note" to "Añadir nota",
             "no_notes" to "Sin notas",

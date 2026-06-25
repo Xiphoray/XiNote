@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="16dp">
 
         <!-- Widget Header -->
         <LinearLayout
@@ -30,27 +30,29 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="XiNote"
-                android:textColor="#1C1B1F"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textColor="#1F1B1A"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.02" />
 
             <ImageView
                 android:id="@+id/btn_add_note"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="新增记事"
-                android:padding="4dp"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
                 android:src="@drawable/ic_add" />
         </LinearLayout>
 
-        <!-- Divider -->
+        <!-- Main Divider under Header -->
         <FrameLayout
             android:id="@+id/widget_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="6dp"
-            android:background="#E0E0E0" />
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="#E5DED8" />
 
         <!-- Empty State View -->
         <TextView
@@ -59,11 +61,11 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:text="暂无内容，点击上方 + 新增"
-            android:textColor="#49454F"
-            android:textSize="12sp"
+            android:textColor="#857370"
+            android:textSize="13sp"
             android:visibility="gone" />
 
-        <!-- Notes List Containers -->
+        <!-- Notes List Container -->
         <LinearLayout
             android:id="@+id/notes_container"
             android:layout_width="match_parent"
@@ -75,98 +77,165 @@
                 android:id="@+id/note_slot_1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:paddingLeft="2dp"
+                android:paddingRight="2dp">
 
-                <TextView
-                    android:id="@+id/note_title_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#1C1B1F"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
+                <!-- Left Rounded Accent Color Bar -->
+                <ImageView
+                    android:id="@+id/note_color_bar_1"
+                    android:layout_width="4dp"
+                    android:layout_height="32dp"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/widget_color_bar" />
 
-                <TextView
-                    android:id="@+id/note_content_1"
-                    android:layout_width="match_parent"
+                <!-- Text Info -->
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#49454F"
-                    android:textSize="11sp" />
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/note_title_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="#1F1B1A"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/note_content_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="#4E4442"
+                        android:textSize="12sp" />
+                </LinearLayout>
             </LinearLayout>
 
             <FrameLayout
                 android:id="@+id/note_divider_1"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#F0F0F0" />
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="2dp"
+                android:background="#F5DED8" />
 
             <!-- Slot 2 -->
             <LinearLayout
                 android:id="@+id/note_slot_2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:paddingLeft="2dp"
+                android:paddingRight="2dp">
 
-                <TextView
-                    android:id="@+id/note_title_2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#1C1B1F"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
+                <!-- Left Rounded Accent Color Bar -->
+                <ImageView
+                    android:id="@+id/note_color_bar_2"
+                    android:layout_width="4dp"
+                    android:layout_height="32dp"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/widget_color_bar" />
 
-                <TextView
-                    android:id="@+id/note_content_2"
-                    android:layout_width="match_parent"
+                <!-- Text Info -->
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#49454F"
-                    android:textSize="11sp" />
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/note_title_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="#1F1B1A"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/note_content_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="#4E4442"
+                        android:textSize="12sp" />
+                </LinearLayout>
             </LinearLayout>
 
             <FrameLayout
                 android:id="@+id/note_divider_2"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#F0F0F0" />
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="2dp"
+                android:background="#F5DED8" />
 
             <!-- Slot 3 -->
             <LinearLayout
                 android:id="@+id/note_slot_3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:paddingLeft="2dp"
+                android:paddingRight="2dp">
 
-                <TextView
-                    android:id="@+id/note_title_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#1C1B1F"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
+                <!-- Left Rounded Accent Color Bar -->
+                <ImageView
+                    android:id="@+id/note_color_bar_3"
+                    android:layout_width="4dp"
+                    android:layout_height="32dp"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/widget_color_bar" />
 
-                <TextView
-                    android:id="@+id/note_content_3"
-                    android:layout_width="match_parent"
+                <!-- Text Info -->
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#49454F"
-                    android:textSize="11sp" />
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/note_title_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="#1F1B1A"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/note_content_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="#4E4442"
+                        android:textSize="12sp" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

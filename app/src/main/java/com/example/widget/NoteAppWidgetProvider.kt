@@ -126,10 +126,11 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
                         views.setViewVisibility(R.id.widget_empty_text, View.GONE)
                         views.setViewVisibility(R.id.notes_container, View.VISIBLE)
 
+                        class SlotViews(val container: Int, val title: Int, val content: Int, val colorBar: Int)
                         val slots = listOf(
-                            Triple(R.id.note_slot_1, R.id.note_title_1, R.id.note_content_1),
-                            Triple(R.id.note_slot_2, R.id.note_title_2, R.id.note_content_2),
-                            Triple(R.id.note_slot_3, R.id.note_title_3, R.id.note_content_3)
+                            SlotViews(R.id.note_slot_1, R.id.note_title_1, R.id.note_content_1, R.id.note_color_bar_1),
+                            SlotViews(R.id.note_slot_2, R.id.note_title_2, R.id.note_content_2, R.id.note_color_bar_2),
+                            SlotViews(R.id.note_slot_3, R.id.note_title_3, R.id.note_content_3, R.id.note_color_bar_3)
                         )
                         val dividers = listOf(R.id.note_divider_1, R.id.note_divider_2)
 
@@ -137,12 +138,19 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
                             val slot = slots[i]
                             if (i < notes.size) {
                                 val note = notes[i]
-                                views.setViewVisibility(slot.first, View.VISIBLE)
-                                views.setTextViewText(slot.second, note.title.ifBlank { untitledText })
-                                views.setTextViewText(slot.third, cleanMarkdownForWidget(note.content))
+                                views.setViewVisibility(slot.container, View.VISIBLE)
+                                
+                                // Pinned status indication
+                                val titlePrefix = if (note.isPinned) "📌 " else ""
+                                views.setTextViewText(slot.title, titlePrefix + note.title.ifBlank { untitledText })
+                                views.setTextViewText(slot.content, cleanMarkdownForWidget(note.content))
 
-                                views.setTextColor(slot.second, textColorTitle)
-                                views.setTextColor(slot.third, textColorContent)
+                                views.setTextColor(slot.title, textColorTitle)
+                                views.setTextColor(slot.content, textColorContent)
+
+                                // Tint the rounded left-aligned color indicator bar dynamically
+                                val indicatorColor = getIndicatorColor(note.colorHex, isDarkMode, plusIconColor)
+                                views.setInt(slot.colorBar, "setColorFilter", indicatorColor)
 
                                 // Setup divider if needed
                                 if (i < 2) {
@@ -166,9 +174,9 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
                                     noteIntent,
                                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                                 )
-                                views.setOnClickPendingIntent(slot.first, notePendingIntent)
+                                views.setOnClickPendingIntent(slot.container, notePendingIntent)
                             } else {
-                                views.setViewVisibility(slot.first, View.GONE)
+                                views.setViewVisibility(slot.container, View.GONE)
                                 if (i < 2) {
                                     views.setViewVisibility(dividers[i], View.GONE)
                                 }
@@ -183,6 +191,19 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
             } finally {
                 pendingResult.finish()
             }
+        }
+    }
+
+    // Returns a beautiful, vibrant Material-style indicator color for note items in the widget
+    private fun getIndicatorColor(colorName: String?, isDarkMode: Boolean, defaultColor: Int): Int {
+        return when (colorName) {
+            "sage" -> if (isDarkMode) 0xFF81C784.toInt() else 0xFF4CAF50.toInt()
+            "sky" -> if (isDarkMode) 0xFF64B5F6.toInt() else 0xFF2196F3.toInt()
+            "lavender" -> if (isDarkMode) 0xFFBA68C8.toInt() else 0xFF9C27B0.toInt()
+            "rose" -> if (isDarkMode) 0xFFF06292.toInt() else 0xFFE91E63.toInt()
+            "peach" -> if (isDarkMode) 0xFFFFB74D.toInt() else 0xFFFF9800.toInt()
+            "slate" -> if (isDarkMode) 0xFF90A4AE.toInt() else 0xFF607D8B.toInt()
+            else -> defaultColor
         }
     }
 
