@@ -1,5 +1,9 @@
 # XiNote 📝
 
+<p align="center">
+  <img src="app/src/main/res/drawable/img_readme_banner_1782358738199.jpg" alt="XiNote Banner" width="100%" />
+</p>
+
 XiNote 是一款优雅、现代且极简的高颜值 Markdown 记事本应用。它采用现代 Android 的 Jetpack Compose 框架与 Material Design 3 规范构建，致力于为用户提供最纯粹、高效的记录与灵感整理体验。
 
 XiNote is an elegant, modern, and minimalist Markdown note-taking app designed with Jetpack Compose and Material Design 3. It delivers a pure, efficient environment for capturing your ideas and organizing your inspiration.
