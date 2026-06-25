@@ -37,15 +37,23 @@ class MainActivity : ComponentActivity() {
         val factory = NoteViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
 
-        // 3. Load SharedPreferences widget configurations and language on start
+        // 3. Load SharedPreferences widget configurations, theme, and language on start
         viewModel.loadWidgetOpacity(applicationContext)
         viewModel.loadLanguage(applicationContext)
+        viewModel.loadTheme(applicationContext)
 
         // 4. Handle deep link intent from widget
         handleWidgetIntent(intent)
 
         setContent {
-            MyApplicationTheme {
+            val appTheme by viewModel.currentTheme.collectAsState()
+            val darkTheme = when (appTheme) {
+                "light" -> false
+                "dark" -> true
+                else -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+
+            MyApplicationTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.background
@@ -57,6 +65,9 @@ class MainActivity : ComponentActivity() {
                         when (currentScreen) {
                             is Screen.Home -> {
                                 MainScreen(viewModel = viewModel)
+                            }
+                            is Screen.Settings -> {
+                                com.example.ui.SettingsScreen(viewModel = viewModel)
                             }
                             is Screen.EditNote -> {
                                 EditNoteScreen(viewModel = viewModel)

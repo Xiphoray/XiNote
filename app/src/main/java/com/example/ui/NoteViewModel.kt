@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 sealed interface Screen {
     object Home : Screen
+    object Settings : Screen
     data class EditNote(val noteId: Int?) : Screen
 }
 
@@ -59,6 +60,9 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     // 7. Language Selection Configuration (Default ZH, supports persistent switching)
     val currentLanguage = MutableStateFlow(AppLanguage.ZH)
 
+    // 8. Theme Selection Configuration (Default system, supports light/dark switching)
+    val currentTheme = MutableStateFlow("system")
+
     fun loadWidgetOpacity(context: Context) {
         val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
         widgetOpacity.value = sp.getInt("widget_opacity", 90)
@@ -79,6 +83,17 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         repository.triggerWidgetUpdate()
     }
 
+    fun loadTheme(context: Context) {
+        val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
+        currentTheme.value = sp.getString("app_theme", "system") ?: "system"
+    }
+
+    fun changeTheme(context: Context, theme: String) {
+        currentTheme.value = theme
+        val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
+        sp.edit().putString("app_theme", theme).apply()
+    }
+
     fun updateWidgetOpacity(context: Context, opacity: Int) {
         widgetOpacity.value = opacity
         val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
@@ -91,10 +106,34 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         repository.triggerWidgetUpdate()
     }
 
+    // WebDAV backup config and operations
+    fun getWebDavConfig() = repository.backupManager.getWebDavConfig()
+
+    fun saveWebDavConfig(config: com.example.data.WebDavConfig) {
+        repository.backupManager.saveWebDavConfig(config)
+    }
+
+    suspend fun backupToWebDav(): Boolean {
+        return repository.backupManager.backupToCloud()
+    }
+
+    suspend fun restoreFromWebDav(): Boolean {
+        val result = repository.backupManager.restoreFromCloud()
+        if (result) {
+            // Widget should be updated after restoration
+            repository.triggerWidgetUpdate()
+        }
+        return result
+    }
+
     // Navigation triggers
     fun navigateToHome() {
         currentScreen.value = Screen.Home
         currentEditingNote.value = null
+    }
+
+    fun navigateToSettings() {
+        currentScreen.value = Screen.Settings
     }
 
     fun navigateToEditNote(noteId: Int?, context: Context? = null) {
@@ -130,6 +169,15 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
                 updatedAt = System.currentTimeMillis()
             )
             repository.insert(updatedNote)
+            
+            // Trigger automatic background backup to WebDAV if credentials are configured
+            launch {
+                val config = repository.backupManager.getWebDavConfig()
+                if (config.url.isNotBlank() && config.username.isNotBlank() && config.password.isNotBlank()) {
+                    repository.backupManager.backupToCloud()
+                }
+            }
+            
             navigateToHome()
         }
     }

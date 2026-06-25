@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -84,19 +85,19 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Beautiful modern pastel colors matching dark and light themes (High Density Palette)
+// Beautiful modern vibrant pastel colors matching dark and light themes (High Density Palette)
 fun getNoteCardColor(colorHex: String?, isDark: Boolean): Color {
     if (colorHex == null || colorHex == "default") {
-        return if (isDark) Color(0xFF241E1D) else Color(0xFFFFF8F6)
+        return if (isDark) Color(0xFF261D1C) else Color(0xFFFFFBFA)
     }
     return when (colorHex) {
-        "sage" -> if (isDark) Color(0xFF222D24) else Color(0xFFF4F9F4)
-        "sky" -> if (isDark) Color(0xFF1F2B35) else Color(0xFFF4F8FA)
-        "lavender" -> if (isDark) Color(0xFF2E2235) else Color(0xFFFAF5FC)
-        "rose" -> if (isDark) Color(0xFF371E23) else Color(0xFFFCF5F6)
-        "peach" -> if (isDark) Color(0xFF34221E) else Color(0xFFFFF7F4)
-        "slate" -> if (isDark) Color(0xFF232324) else Color(0xFFF7F7F8)
-        else -> if (isDark) Color(0xFF241E1D) else Color(0xFFFFF8F6)
+        "sage" -> if (isDark) Color(0xFF1D3B23) else Color(0xFFE2F4E4)
+        "sky" -> if (isDark) Color(0xFF1B364A) else Color(0xFFDCEEFA)
+        "lavender" -> if (isDark) Color(0xFF33203D) else Color(0xFFF0E5F9)
+        "rose" -> if (isDark) Color(0xFF431F25) else Color(0xFFFCE4E8)
+        "peach" -> if (isDark) Color(0xFF41281A) else Color(0xFFFCEADA)
+        "slate" -> if (isDark) Color(0xFF2A2C30) else Color(0xFFE9ECEF)
+        else -> if (isDark) Color(0xFF261D1C) else Color(0xFFFFFBFA)
     }
 }
 
@@ -183,48 +184,9 @@ fun MainScreen(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Language Selector Button with Dropdown Menu
-                Box {
-                    IconButton(
-                        onClick = { showLanguageMenu = true },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                                shape = CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Translate,
-                            contentDescription = Localization.getString("language", currentLanguage),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = showLanguageMenu,
-                        onDismissRequest = { showLanguageMenu = false }
-                    ) {
-                        AppLanguage.values().forEach { lang ->
-                            DropdownMenuItem(
-                                text = { Text(text = "${lang.displayName} (${lang.nativeName})") },
-                                onClick = {
-                                    viewModel.changeLanguage(context, lang)
-                                    showLanguageMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Widget Customization Dialog Trigger
+                // Consolidated Settings Page Button
                 IconButton(
-                    onClick = {
-                        viewModel.loadWidgetOpacity(context)
-                        showWidgetSettings = true
-                    },
+                    onClick = { viewModel.navigateToSettings() },
                     modifier = Modifier
                         .size(48.dp)
                         .background(
@@ -233,8 +195,8 @@ fun MainScreen(
                         )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Tune,
-                        contentDescription = Localization.getString("widget_settings", currentLanguage),
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = Localization.getString("settings", currentLanguage),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -314,7 +276,8 @@ fun MainScreen(
                                 onClick = { viewModel.navigateToEditNote(note.id) },
                                 onTogglePin = { viewModel.togglePin(note) },
                                 onDelete = { viewModel.deleteNoteDirectly(note) },
-                                currentLanguage = currentLanguage
+                                currentLanguage = currentLanguage,
+                                modifier = Modifier.animateItem()
                             )
                         }
                     }
@@ -338,7 +301,8 @@ fun MainScreen(
                                 onClick = { viewModel.navigateToEditNote(note.id) },
                                 onTogglePin = { viewModel.togglePin(note) },
                                 onDelete = { viewModel.deleteNoteDirectly(note) },
-                                currentLanguage = currentLanguage
+                                currentLanguage = currentLanguage,
+                                modifier = Modifier.animateItem()
                             )
                         }
                     }
@@ -360,6 +324,24 @@ fun MainScreen(
     }
 }
 
+fun getCategoryEmoji(title: String, content: String): String {
+    val text = (title + " " + content).lowercase(Locale.getDefault())
+    return when {
+        text.contains("code") || text.contains("bug") || text.contains("develop") || text.contains("programming") || text.contains("编程") || text.contains("代码") -> "💻"
+        text.contains("plan") || text.contains("todo") || text.contains("schedule") || text.contains("meeting") || text.contains("agenda") || text.contains("计划") || text.contains("会议") -> "📅"
+        text.contains("shopping") || text.contains("buy") || text.contains("cart") || text.contains("store") || text.contains("购物") || text.contains("买") || text.contains("超市") -> "🛒"
+        text.contains("idea") || text.contains("creative") || text.contains("thought") || text.contains("brainstorm") || text.contains("点子") || text.contains("想法") || text.contains("灵感") -> "💡"
+        text.contains("love") || text.contains("heart") || text.contains("like") || text.contains("anniversary") || text.contains("爱") || text.contains("喜欢") || text.contains("纪念日") || text.contains("情侣") -> "💖"
+        text.contains("finance") || text.contains("money") || text.contains("cost") || text.contains("pay") || text.contains("salary") || text.contains("钱") || text.contains("账单") || text.contains("工资") || text.contains("理财") -> "💵"
+        text.contains("study") || text.contains("learn") || text.contains("read") || text.contains("book") || text.contains("学习") || text.contains("看书") || text.contains("书") || text.contains("课程") -> "📚"
+        text.contains("music") || text.contains("song") || text.contains("sing") || text.contains("concert") || text.contains("音乐") || text.contains("歌") || text.contains("演唱会") -> "🎵"
+        text.contains("food") || text.contains("eat") || text.contains("cook") || text.contains("recipe") || text.contains("饭") || text.contains("吃") || text.contains("菜谱") || text.contains("美味") -> "🍕"
+        text.contains("sport") || text.contains("run") || text.contains("workout") || text.contains("gym") || text.contains("health") || text.contains("运动") || text.contains("跑") || text.contains("健身") || text.contains("健康") -> "🏃"
+        text.contains("travel") || text.contains("trip") || text.contains("flight") || text.contains("vacation") || text.contains("旅游") || text.contains("出行") || text.contains("飞机") || text.contains("度假") -> "✈️"
+        else -> "📝"
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NoteCard(
@@ -373,23 +355,24 @@ fun NoteCard(
 ) {
     val cardColor = getNoteCardColor(note.colorHex, isDark)
     val dateFormat = remember { SimpleDateFormat("MM月dd日 HH:mm", Locale.getDefault()) }
+    val categoryEmoji = remember(note.title, note.content) { getCategoryEmoji(note.title, note.content) }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onTogglePin
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor),
         border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
+            width = 1.5.dp,
             color = if (isDark) {
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
             } else {
-                MaterialTheme.colorScheme.outlineVariant
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -401,17 +384,40 @@ fun NoteCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = note.title.ifBlank { Localization.getString("untitled", currentLanguage) },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
-                )
+                ) {
+                    // Cute dynamic category sticker badge!
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(
+                                color = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.65f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = categoryEmoji,
+                            fontSize = 15.sp
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = note.title.ifBlank { Localization.getString("untitled", currentLanguage) },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 IconButton(
                     onClick = onTogglePin,
@@ -420,13 +426,13 @@ fun NoteCard(
                     Icon(
                         imageVector = if (note.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                         contentDescription = Localization.getString(if (note.isPinned) "unpin" else "pin", currentLanguage),
-                        tint = if (note.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        tint = if (note.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Body preview: strip heading symbols and display a clean snippet
             val previewText = remember(note.content) {
@@ -434,18 +440,75 @@ fun NoteCard(
                     .replace(Regex("(?m)^#+\\s+"), "")
                     .replace(Regex("\\*\\*(.*?)\\*\\*"), "$1")
                     .replace(Regex("\\*(.*?)\\*"), "$1")
+                    .replace(Regex("`"), "")
                     .trim()
             }
 
             Text(
                 text = previewText.ifBlank { Localization.getString("empty_content", currentLanguage) },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 18.sp,
+                lineHeight = 19.sp,
                 modifier = Modifier.weight(1f, fill = false)
             )
+
+            // Dynamic task progress tracker for todo-style note content
+            val todoStats = remember(note.content) {
+                val hasBracket = note.content.contains("[ ]") || note.content.contains("[x]") || note.content.contains("[X]")
+                if (hasBracket) {
+                    val total = note.content.split(Regex("\\[[ xX]\\]")).size - 1
+                    val checked = note.content.split(Regex("\\[[xX]\\]")).size - 1
+                    if (total > 0) checked to total else null
+                } else {
+                    null
+                }
+            }
+
+            if (todoStats != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                val (checked, total) = todoStats
+                val progress = checked.toFloat() / total
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "任务进度: $checked/$total",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${(progress * 100).toInt()}%",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp)),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -454,11 +517,33 @@ fun NoteCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = dateFormat.format(Date(note.updatedAt)),
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = dateFormat.format(Date(note.updatedAt)),
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                    
+                    // Cute word count badge for a beautiful lively UI!
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = "${note.content.length} 字",
+                            fontSize = 9.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
 
                 IconButton(
                     onClick = onDelete,
@@ -467,7 +552,7 @@ fun NoteCard(
                     Icon(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = Localization.getString("delete", currentLanguage),
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
                         modifier = Modifier.size(16.dp)
                     )
                 }

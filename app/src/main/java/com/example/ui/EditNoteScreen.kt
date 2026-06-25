@@ -72,6 +72,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import androidx.compose.runtime.saveable.rememberSaveable
+
 @Composable
 fun EditNoteScreen(
     viewModel: NoteViewModel,
@@ -87,26 +89,19 @@ fun EditNoteScreen(
         return
     }
 
-    var title by remember { mutableStateOf(note?.title ?: "") }
-    var contentValue by remember { mutableStateOf(TextFieldValue(note?.content ?: "")) }
-    var colorHex by remember { mutableStateOf(note?.colorHex ?: "default") }
-    var isPinned by remember { mutableStateOf(note?.isPinned ?: false) }
+    val noteId = note?.id
+    var title by rememberSaveable(noteId) { mutableStateOf(note?.title ?: "") }
+    var contentValue by rememberSaveable(noteId, stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(note?.content ?: ""))
+    }
+    var colorHex by rememberSaveable(noteId) { mutableStateOf(note?.colorHex ?: "default") }
+    var isPinned by rememberSaveable(noteId) { mutableStateOf(note?.isPinned ?: false) }
 
     BackHandler {
         if (title.isNotBlank() || (contentValue.text.isNotBlank() && contentValue.text != "# ")) {
             viewModel.saveNote(title, contentValue.text, colorHex, isPinned)
         } else {
             viewModel.navigateToHome()
-        }
-    }
-
-    // Synchronize state when note database values resolve
-    LaunchedEffect(note) {
-        note?.let {
-            title = it.title
-            contentValue = TextFieldValue(it.content)
-            colorHex = it.colorHex ?: "default"
-            isPinned = it.isPinned
         }
     }
 

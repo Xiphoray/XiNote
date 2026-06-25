@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 class NoteRepository(private val context: Context, private val noteDao: NoteDao) {
     val allNotesFlow: Flow<List<Note>> = noteDao.getAllNotesFlow()
+    val backupManager = WebDavBackupManager(context, noteDao)
 
     suspend fun getLatestNotes(limit: Int): List<Note> {
         return noteDao.getLatestNotes(limit)

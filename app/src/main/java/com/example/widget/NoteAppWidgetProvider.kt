@@ -19,6 +19,15 @@ import kotlinx.coroutines.launch
 
 class NoteAppWidgetProvider : AppWidgetProvider() {
 
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle
+    ) {
+        onUpdate(context, appWidgetManager, intArrayOf(appWidgetId))
+    }
+
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
@@ -91,6 +100,15 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
                 for (appWidgetId in appWidgetIds) {
                     val views = RemoteViews(context.packageName, R.layout.note_widget_layout)
 
+                    // Get widget height dynamically to determine how many items fit
+                    val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+                    val minHeight = options?.getInt("appWidgetMinHeight", 180) ?: 180
+                    val maxSlots = when {
+                        minHeight < 110 -> 1
+                        minHeight < 190 -> 2
+                        else -> 3
+                    }
+
                     // 1. Background style using setAlpha (universally supported Float RemoteView method)
                     views.setInt(R.id.widget_background_view, "setColorFilter", argbBgColor)
                     views.setFloat(R.id.widget_background_view, "setAlpha", opacity / 100f)
@@ -136,7 +154,7 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
 
                         for (i in 0..2) {
                             val slot = slots[i]
-                            if (i < notes.size) {
+                            if (i < notes.size && i < maxSlots) {
                                 val note = notes[i]
                                 views.setViewVisibility(slot.container, View.VISIBLE)
                                 
@@ -154,7 +172,7 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
 
                                 // Setup divider if needed
                                 if (i < 2) {
-                                    if (i < notes.size - 1) {
+                                    if (i < notes.size - 1 && i < maxSlots - 1) {
                                         views.setViewVisibility(dividers[i], View.VISIBLE)
                                         views.setInt(dividers[i], "setBackgroundColor", dividerColor)
                                     } else {
