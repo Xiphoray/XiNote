@@ -33,6 +33,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,6 +49,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -102,13 +107,13 @@ fun getNoteCardColor(colorHex: String?, isDark: Boolean): Color {
 }
 
 val NOTE_COLORS = listOf(
-    "default" to "默认",
-    "sage" to "薄荷绿",
-    "sky" to "天空蓝",
-    "lavender" to "薰衣草",
-    "rose" to "蔷薇粉",
-    "peach" to "温暖橙",
-    "slate" to "石板灰"
+    "default" to "宣纸白",
+    "sage" to "竹青",
+    "sky" to "天青",
+    "lavender" to "丁香",
+    "rose" to "胭脂",
+    "peach" to "秋香",
+    "slate" to "黛灰"
 )
 
 @Composable
@@ -184,6 +189,55 @@ fun MainScreen(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
+                var showViewOptions by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(
+                        onClick = { showViewOptions = true },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ViewAgenda,
+                            contentDescription = "View Options",
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = showViewOptions,
+                        onDismissRequest = { showViewOptions = false }
+                    ) {
+                        val listLayout by viewModel.listLayout.collectAsState()
+                        val groupByTopic by viewModel.groupByTopic.collectAsState()
+                        
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(if (listLayout == 0) "当前: 一列" else if (listLayout == 1) "当前: 两列" else "当前: 瀑布流") },
+                            onClick = {
+                                viewModel.setListLayout(context, (listLayout + 1) % 3)
+                            }
+                        )
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(if (groupByTopic) "取消按主题分组" else "按主题分组") },
+                            onClick = {
+                                viewModel.setGroupByTopic(context, !groupByTopic)
+                                showViewOptions = false
+                            }
+                        )
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("一键智能分配主题") },
+                            onClick = {
+                                viewModel.autoAssignTopic(context)
+                                showViewOptions = false
+                            }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
                 // Consolidated Settings Page Button
                 IconButton(
                     onClick = { viewModel.navigateToSettings() },
@@ -241,69 +295,125 @@ fun MainScreen(
                     }
                 }
             } else {
-                val pinnedNotes = notes.filter { it.isPinned }
-                val otherNotes = notes.filter { !it.isPinned }
-
+                val listLayout by viewModel.listLayout.collectAsState()
+                val groupByTopic by viewModel.groupByTopic.collectAsState()
                 val configuration = LocalConfiguration.current
                 val screenWidthDp = configuration.screenWidthDp
-                val gridColumns = when {
-                    screenWidthDp >= 900 -> GridCells.Fixed(4)
-                    screenWidthDp >= 600 -> GridCells.Fixed(3)
-                    else -> GridCells.Fixed(2)
+                
+                val gridColumns = when (listLayout) {
+                    0 -> StaggeredGridCells.Fixed(1)
+                    1 -> StaggeredGridCells.Fixed(2)
+                    2 -> {
+                        when {
+                            screenWidthDp >= 900 -> StaggeredGridCells.Fixed(4)
+                            screenWidthDp >= 600 -> StaggeredGridCells.Fixed(3)
+                            else -> StaggeredGridCells.Fixed(2)
+                        }
+                    }
+                    else -> StaggeredGridCells.Fixed(2)
                 }
 
-                LazyVerticalGrid(
+                LazyVerticalStaggeredGrid(
                     columns = gridColumns,
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalItemSpacing = 12.dp,
                     modifier = Modifier.weight(1f)
                 ) {
-                    if (pinnedNotes.isNotEmpty()) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            Text(
-                                text = Localization.getString("pinned", currentLanguage),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                        }
-                        items(pinnedNotes, key = { it.id }) { note ->
-                            NoteCard(
-                                note = note,
-                                isDark = isDark,
-                                onClick = { viewModel.navigateToEditNote(note.id) },
-                                onTogglePin = { viewModel.togglePin(note) },
-                                onDelete = { viewModel.deleteNoteDirectly(note) },
-                                currentLanguage = currentLanguage,
-                                modifier = Modifier.animateItem()
-                            )
-                        }
-                    }
-
-                    if (otherNotes.isNotEmpty()) {
-                        if (pinnedNotes.isNotEmpty()) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
+                    if (groupByTopic) {
+                        val groupedNotes = notes.groupBy { it.topic }.toSortedMap()
+                        groupedNotes.forEach { (topic, topicNotes) ->
+                            val pinnedNotes = topicNotes.filter { it.isPinned }
+                            val otherNotes = topicNotes.filter { !it.isPinned }
+                            
+                            item(span = StaggeredGridItemSpan.FullLine) {
                                 Text(
-                                    text = Localization.getString("others", currentLanguage),
-                                    style = MaterialTheme.typography.titleSmall,
+                                    text = "主题: $topic",
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                                 )
                             }
+                            
+                            items(pinnedNotes, key = { it.id }) { note ->
+                                NoteCard(
+                                    note = note,
+                                    isDark = isDark,
+                                    onClick = { viewModel.navigateToEditNote(note.id) },
+                                    onTogglePin = { viewModel.togglePin(note) },
+                                    onDelete = { viewModel.deleteNoteDirectly(note) },
+                                    onUpdateNote = { viewModel.insertNote(it) },
+                                    currentLanguage = currentLanguage,
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
+                            
+                            items(otherNotes, key = { it.id }) { note ->
+                                NoteCard(
+                                    note = note,
+                                    isDark = isDark,
+                                    onClick = { viewModel.navigateToEditNote(note.id) },
+                                    onTogglePin = { viewModel.togglePin(note) },
+                                    onDelete = { viewModel.deleteNoteDirectly(note) },
+                                    onUpdateNote = { viewModel.insertNote(it) },
+                                    currentLanguage = currentLanguage,
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
                         }
-                        items(otherNotes, key = { it.id }) { note ->
-                            NoteCard(
-                                note = note,
-                                isDark = isDark,
-                                onClick = { viewModel.navigateToEditNote(note.id) },
-                                onTogglePin = { viewModel.togglePin(note) },
-                                onDelete = { viewModel.deleteNoteDirectly(note) },
-                                currentLanguage = currentLanguage,
-                                modifier = Modifier.animateItem()
-                            )
+                    } else {
+                        val pinnedNotes = notes.filter { it.isPinned }
+                        val otherNotes = notes.filter { !it.isPinned }
+
+                        if (pinnedNotes.isNotEmpty()) {
+                            item(span = StaggeredGridItemSpan.FullLine) {
+                                Text(
+                                    text = Localization.getString("pinned", currentLanguage),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                            }
+                            items(pinnedNotes, key = { it.id }) { note ->
+                                NoteCard(
+                                    note = note,
+                                    isDark = isDark,
+                                    onClick = { viewModel.navigateToEditNote(note.id) },
+                                    onTogglePin = { viewModel.togglePin(note) },
+                                    onDelete = { viewModel.deleteNoteDirectly(note) },
+                                    onUpdateNote = { viewModel.insertNote(it) },
+                                    currentLanguage = currentLanguage,
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
+                        }
+
+                        if (otherNotes.isNotEmpty()) {
+                            if (pinnedNotes.isNotEmpty()) {
+                                item(span = StaggeredGridItemSpan.FullLine) {
+                                    Text(
+                                        text = Localization.getString("others", currentLanguage),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                                    )
+                                }
+                            }
+                            items(otherNotes, key = { it.id }) { note ->
+                                NoteCard(
+                                    note = note,
+                                    isDark = isDark,
+                                    onClick = { viewModel.navigateToEditNote(note.id) },
+                                    onTogglePin = { viewModel.togglePin(note) },
+                                    onDelete = { viewModel.deleteNoteDirectly(note) },
+                                    onUpdateNote = { viewModel.insertNote(it) },
+                                    currentLanguage = currentLanguage,
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
                         }
                     }
                 }
@@ -350,12 +460,14 @@ fun NoteCard(
     onClick: () -> Unit,
     onTogglePin: () -> Unit,
     onDelete: () -> Unit,
+    onUpdateNote: (Note) -> Unit,
     currentLanguage: AppLanguage,
     modifier: Modifier = Modifier
 ) {
     val cardColor = getNoteCardColor(note.colorHex, isDark)
     val dateFormat = remember { SimpleDateFormat("MM月dd日 HH:mm", Locale.getDefault()) }
     val categoryEmoji = remember(note.title, note.content) { getCategoryEmoji(note.title, note.content) }
+    var showMenu by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier
@@ -363,7 +475,7 @@ fun NoteCard(
             .clip(RoundedCornerShape(20.dp))
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = onTogglePin
+                onLongClick = { showMenu = true }
             ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor),
@@ -377,11 +489,12 @@ fun NoteCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .padding(14.dp)
-                .fillMaxWidth()
-        ) {
+        Box {
+            Column(
+                modifier = Modifier
+                    .padding(14.dp)
+                    .fillMaxWidth()
+            ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -448,10 +561,10 @@ fun NoteCard(
                 text = previewText.ifBlank { Localization.getString("empty_content", currentLanguage) },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                maxLines = 4,
-                overflow = TextOverflow.Ellipsis,
                 lineHeight = 19.sp,
-                modifier = Modifier.weight(1f, fill = false)
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
             )
 
             // Dynamic task progress tracker for todo-style note content
@@ -526,23 +639,6 @@ fun NoteCard(
                         fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
-                    
-                    // Cute word count badge for a beautiful lively UI!
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f),
-                                shape = RoundedCornerShape(4.dp)
-                            )
-                            .padding(horizontal = 4.dp, vertical = 1.dp)
-                    ) {
-                        Text(
-                            text = "${note.content.length} 字",
-                            fontSize = 9.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
 
                 IconButton(
@@ -557,8 +653,34 @@ fun NoteCard(
                     )
                 }
             }
+            
+            androidx.compose.material3.DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text(if (note.isPinned) "取消固定" else "固定记事") },
+                    onClick = {
+                        onTogglePin()
+                        showMenu = false
+                    }
+                )
+                // Common topics for quick selection
+                val predefinedTopics = listOf("工作/代码", "计划/待办", "购物", "灵感/点子", "情感/纪念日", "财务/理财", "学习", "默认")
+                androidx.compose.material3.HorizontalDivider()
+                predefinedTopics.forEach { topic ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("主题: $topic") },
+                        onClick = {
+                            onUpdateNote(note.copy(topic = topic))
+                            showMenu = false
+                        }
+                    )
+                }
+            }
         }
     }
+}
 }
 
 @Composable

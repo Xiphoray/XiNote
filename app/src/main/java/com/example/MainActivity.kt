@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
@@ -38,9 +39,7 @@ class MainActivity : ComponentActivity() {
         viewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
 
         // 3. Load SharedPreferences widget configurations, theme, and language on start
-        viewModel.loadWidgetOpacity(applicationContext)
-        viewModel.loadLanguage(applicationContext)
-        viewModel.loadTheme(applicationContext)
+        viewModel.loadPreferences(applicationContext)
 
         // 4. Handle deep link intent from widget
         handleWidgetIntent(intent)
@@ -60,8 +59,16 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val screen by viewModel.currentScreen.collectAsState()
 
-                    // Crossfade animation for screen navigation transitions
-                    Crossfade(targetState = screen, label = "ScreenTransition") { currentScreen ->
+                    // Enhanced ancient-style animated screen transitions
+                    androidx.compose.animation.AnimatedContent(
+                        targetState = screen,
+                        label = "ScreenTransition",
+                        transitionSpec = {
+                            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(400)) + 
+                            androidx.compose.animation.scaleIn(initialScale = 0.95f, animationSpec = androidx.compose.animation.core.tween(400)) togetherWith
+                            androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(400))
+                        }
+                    ) { currentScreen ->
                         when (currentScreen) {
                             is Screen.Home -> {
                                 MainScreen(viewModel = viewModel)

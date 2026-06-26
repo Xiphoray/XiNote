@@ -42,7 +42,8 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         } else {
             notes.filter {
                 it.title.contains(query, ignoreCase = true) ||
-                it.content.contains(query, ignoreCase = true)
+                it.content.contains(query, ignoreCase = true) ||
+                it.topic.contains(query, ignoreCase = true)
             }
         }
     }.stateIn(
@@ -62,6 +63,64 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
     // 8. Theme Selection Configuration (Default system, supports light/dark switching)
     val currentTheme = MutableStateFlow("system")
+
+    val listLayout = MutableStateFlow(1) // 0: 1 col, 1: 2 col, 2: staggered
+    val groupByTopic = MutableStateFlow(false)
+
+    fun loadPreferences(context: Context) {
+        loadWidgetOpacity(context)
+        loadLanguage(context)
+        loadTheme(context)
+        val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
+        listLayout.value = sp.getInt("list_layout", 1)
+        groupByTopic.value = sp.getBoolean("group_by_topic", false)
+    }
+
+    fun setListLayout(context: Context, layout: Int) {
+        listLayout.value = layout
+        val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
+        sp.edit().putInt("list_layout", layout).apply()
+    }
+
+    fun setGroupByTopic(context: Context, group: Boolean) {
+        groupByTopic.value = group
+        val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
+        sp.edit().putBoolean("group_by_topic", group).apply()
+    }
+
+    fun insertNote(note: Note) {
+        viewModelScope.launch {
+            repository.insert(note)
+        }
+    }
+
+    fun autoAssignTopic(context: Context) {
+        viewModelScope.launch {
+            val notes = repository.getLatestNotes(1000)
+            notes.forEach { note ->
+                if (note.topic == "默认" || note.topic.isBlank()) {
+                    val assignedTopic = getAutoTopic(note.title, note.content)
+                    if (assignedTopic != "默认") {
+                        repository.insert(note.copy(topic = assignedTopic))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getAutoTopic(title: String, content: String): String {
+        val text = (title + " " + content).lowercase(java.util.Locale.getDefault())
+        return when {
+            text.contains("code") || text.contains("bug") || text.contains("develop") || text.contains("编程") || text.contains("代码") -> "工作/代码"
+            text.contains("plan") || text.contains("todo") || text.contains("schedule") || text.contains("meeting") || text.contains("计划") || text.contains("会议") -> "计划/待办"
+            text.contains("shopping") || text.contains("buy") || text.contains("cart") || text.contains("购物") || text.contains("买") -> "购物"
+            text.contains("idea") || text.contains("creative") || text.contains("点子") || text.contains("想法") || text.contains("灵感") -> "灵感/点子"
+            text.contains("love") || text.contains("heart") || text.contains("纪念日") || text.contains("情侣") -> "情感/纪念日"
+            text.contains("finance") || text.contains("money") || text.contains("cost") || text.contains("钱") || text.contains("账单") || text.contains("工资") || text.contains("理财") -> "财务/理财"
+            text.contains("study") || text.contains("learn") || text.contains("read") || text.contains("学习") || text.contains("看书") -> "学习"
+            else -> "默认"
+        }
+    }
 
     fun loadWidgetOpacity(context: Context) {
         val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
@@ -158,7 +217,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     }
 
     // Database updates
-    fun saveNote(title: String, content: String, colorHex: String?, isPinned: Boolean) {
+    fun saveNote(title: String, content: String, colorHex: String?, isPinned: Boolean, showInWidget: Boolean) {
         val note = currentEditingNote.value ?: return
         viewModelScope.launch {
             val updatedNote = note.copy(
@@ -166,6 +225,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
                 content = content,
                 colorHex = colorHex,
                 isPinned = isPinned,
+                showInWidget = showInWidget,
                 updatedAt = System.currentTimeMillis()
             )
             repository.insert(updatedNote)

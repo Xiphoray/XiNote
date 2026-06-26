@@ -15,6 +15,9 @@ interface NoteDao {
     @Query("SELECT * FROM notes ORDER BY isPinned DESC, updatedAt DESC LIMIT :limit")
     suspend fun getLatestNotes(limit: Int): List<Note>
 
+    @Query("SELECT * FROM notes WHERE showInWidget = 1 ORDER BY isPinned DESC, updatedAt DESC")
+    suspend fun getWidgetNotes(): List<Note>
+
     @Query("SELECT * FROM notes WHERE id = :id")
     suspend fun getNoteById(id: Int): Note?
 

@@ -10,5 +10,7 @@ data class Note(
     val content: String,
     val updatedAt: Long = System.currentTimeMillis(),
     val colorHex: String? = null,
-    val isPinned: Boolean = false
+    val isPinned: Boolean = false,
+    val topic: String = "默认",
+    val showInWidget: Boolean = true
 )

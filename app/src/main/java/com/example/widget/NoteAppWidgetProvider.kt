@@ -134,75 +134,34 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
                     )
                     views.setOnClickPendingIntent(R.id.btn_add_note, addPendingIntent)
 
-                    // 4. Bind notes to slots
+                    // 4. Bind notes to ListView using RemoteViewsService
                     if (notes.isEmpty()) {
                         views.setViewVisibility(R.id.widget_empty_text, View.VISIBLE)
                         views.setTextViewText(R.id.widget_empty_text, widgetEmptyTextMsg)
-                        views.setViewVisibility(R.id.notes_container, View.GONE)
+                        views.setViewVisibility(R.id.notes_list, View.GONE)
                         views.setTextColor(R.id.widget_empty_text, textColorContent)
                     } else {
                         views.setViewVisibility(R.id.widget_empty_text, View.GONE)
-                        views.setViewVisibility(R.id.notes_container, View.VISIBLE)
+                        views.setViewVisibility(R.id.notes_list, View.VISIBLE)
 
-                        class SlotViews(val container: Int, val title: Int, val content: Int, val colorBar: Int)
-                        val slots = listOf(
-                            SlotViews(R.id.note_slot_1, R.id.note_title_1, R.id.note_content_1, R.id.note_color_bar_1),
-                            SlotViews(R.id.note_slot_2, R.id.note_title_2, R.id.note_content_2, R.id.note_color_bar_2),
-                            SlotViews(R.id.note_slot_3, R.id.note_title_3, R.id.note_content_3, R.id.note_color_bar_3)
-                        )
-                        val dividers = listOf(R.id.note_divider_1, R.id.note_divider_2)
-
-                        for (i in 0..2) {
-                            val slot = slots[i]
-                            if (i < notes.size && i < maxSlots) {
-                                val note = notes[i]
-                                views.setViewVisibility(slot.container, View.VISIBLE)
-                                
-                                // Pinned status indication
-                                val titlePrefix = if (note.isPinned) "📌 " else ""
-                                views.setTextViewText(slot.title, titlePrefix + note.title.ifBlank { untitledText })
-                                views.setTextViewText(slot.content, cleanMarkdownForWidget(note.content))
-
-                                views.setTextColor(slot.title, textColorTitle)
-                                views.setTextColor(slot.content, textColorContent)
-
-                                // Tint the rounded left-aligned color indicator bar dynamically
-                                val indicatorColor = getIndicatorColor(note.colorHex, isDarkMode, plusIconColor)
-                                views.setInt(slot.colorBar, "setColorFilter", indicatorColor)
-
-                                // Setup divider if needed
-                                if (i < 2) {
-                                    if (i < notes.size - 1 && i < maxSlots - 1) {
-                                        views.setViewVisibility(dividers[i], View.VISIBLE)
-                                        views.setInt(dividers[i], "setBackgroundColor", dividerColor)
-                                    } else {
-                                        views.setViewVisibility(dividers[i], View.GONE)
-                                    }
-                                }
-
-                                // Setup click intent for this note
-                                val noteIntent = Intent(context, MainActivity::class.java).apply {
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                    putExtra("action", "EDIT_NOTE")
-                                    putExtra("note_id", note.id)
-                                }
-                                val notePendingIntent = PendingIntent.getActivity(
-                                    context,
-                                    note.id, // unique request code
-                                    noteIntent,
-                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                                )
-                                views.setOnClickPendingIntent(slot.container, notePendingIntent)
-                            } else {
-                                views.setViewVisibility(slot.container, View.GONE)
-                                if (i < 2) {
-                                    views.setViewVisibility(dividers[i], View.GONE)
-                                }
-                            }
+                        val serviceIntent = Intent(context, NoteWidgetService::class.java)
+                        views.setRemoteAdapter(R.id.notes_list, serviceIntent)
+                        
+                        // Handle clicks in the ListView
+                        val clickIntentTemplate = Intent(context, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
+                        val pendingIntentTemplate = PendingIntent.getActivity(
+                            context,
+                            0,
+                            clickIntentTemplate,
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                        )
+                        views.setPendingIntentTemplate(R.id.notes_list, pendingIntentTemplate)
                     }
 
                     appWidgetManager.updateAppWidget(appWidgetId, views)
+                    appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.notes_list)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

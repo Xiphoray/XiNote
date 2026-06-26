@@ -64,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -71,9 +72,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PictureAsPdf
+import android.widget.Toast
+import android.content.Intent
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditNoteScreen(
     viewModel: NoteViewModel,
@@ -81,6 +92,7 @@ fun EditNoteScreen(
 ) {
     val note by viewModel.currentEditingNote.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val context = LocalContext.current
 
     if (note == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -96,10 +108,14 @@ fun EditNoteScreen(
     }
     var colorHex by rememberSaveable(noteId) { mutableStateOf(note?.colorHex ?: "default") }
     var isPinned by rememberSaveable(noteId) { mutableStateOf(note?.isPinned ?: false) }
+    var showInWidget by rememberSaveable(noteId) { mutableStateOf(note?.showInWidget ?: true) }
+    
+    var showSettingsSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     BackHandler {
         if (title.isNotBlank() || (contentValue.text.isNotBlank() && contentValue.text != "# ")) {
-            viewModel.saveNote(title, contentValue.text, colorHex, isPinned)
+            viewModel.saveNote(title, contentValue.text, colorHex, isPinned, showInWidget)
         } else {
             viewModel.navigateToHome()
         }
@@ -145,8 +161,7 @@ fun EditNoteScreen(
 
     Scaffold(
         modifier = modifier
-            .fillMaxSize()
-            .imePadding(),
+            .fillMaxSize(),
         topBar = {
             // Header Action Command Bar
             Row(
@@ -169,31 +184,20 @@ fun EditNoteScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Pinned state
-                    IconButton(onClick = { isPinned = !isPinned }) {
+                    // Settings/More button
+                    IconButton(onClick = { showSettingsSheet = true }) {
                         Icon(
-                            imageVector = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                            contentDescription = Localization.getString(if (isPinned) "unpin" else "pin", currentLanguage),
-                            tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More Settings",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
-                    }
-
-                    // Delete note
-                    if (note?.id != 0) {
-                        IconButton(onClick = { viewModel.deleteNote() }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = Localization.getString("delete", currentLanguage),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
                     }
 
                     Spacer(modifier = Modifier.width(4.dp))
 
                     // Save note
                     IconButton(
-                        onClick = { viewModel.saveNote(title, contentValue.text, colorHex, isPinned) },
+                        onClick = { viewModel.saveNote(title, contentValue.text, colorHex, isPinned, showInWidget) },
                         modifier = Modifier
                             .size(40.dp)
                             .background(MaterialTheme.colorScheme.primary, CircleShape)
@@ -214,49 +218,6 @@ fun EditNoteScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Card Color Palette Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    Localization.getString("color_label", currentLanguage),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                NOTE_COLORS.forEach { (colorKey, _) ->
-                    val circleColor = getNoteCardColor(colorKey, isDark)
-                    val isSelected = colorHex == colorKey
-
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .background(circleColor, CircleShape)
-                            .border(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                                shape = CircleShape
-                            )
-                            .clip(CircleShape)
-                            .clickable { colorHex = colorKey },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = Localization.getColorName(colorKey, currentLanguage),
-                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
             // Adaptive Multi-Pane Content Layout
             if (isWideScreen) {
                 // Side-by-side Dual Split Screen for Tablets / Landscape Mode
@@ -415,6 +376,176 @@ fun EditNoteScreen(
             }
         }
     }
+
+    if (showSettingsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSettingsSheet = false },
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("记事设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+                // Color Selection
+                Text("记事颜色", style = MaterialTheme.typography.labelLarge)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    NOTE_COLORS.forEach { (colorKey, _) ->
+                        val circleColor = getNoteCardColor(colorKey, isDark)
+                        val isSelected = colorHex == colorKey
+
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(circleColor, CircleShape)
+                                .border(
+                                    width = if (isSelected) 2.dp else 1.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                    shape = CircleShape
+                                )
+                                .clip(CircleShape)
+                                .clickable { colorHex = colorKey },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Pin Note
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isPinned = !isPinned }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.PushPin, contentDescription = null, tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("置顶记事")
+                    }
+                    androidx.compose.material3.Switch(checked = isPinned, onCheckedChange = { isPinned = it })
+                }
+
+                // Show in Widget
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showInWidget = !showInWidget }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Preview, contentDescription = null, tint = if (showInWidget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("在小组件中显示")
+                    }
+                    androidx.compose.material3.Switch(checked = showInWidget, onCheckedChange = { showInWidget = it })
+                }
+
+                HorizontalDivider()
+
+                // Share options
+                Text("分享", style = MaterialTheme.typography.labelLarge)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    IconButton(onClick = {
+                        val sendIntent = android.content.Intent().apply {
+                            action = android.content.Intent.ACTION_SEND
+                            putExtra(android.content.Intent.EXTRA_TEXT, "${title}\n\n${contentValue.text}")
+                            type = "text/plain"
+                        }
+                        context.startActivity(android.content.Intent.createChooser(sendIntent, null))
+                        showSettingsSheet = false
+                    }) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Share, contentDescription = "文本")
+                    }
+                    // Share as Image (using an HTML fallback for simplicity, but named properly) or just create a File and share
+                    IconButton(onClick = {
+                        try {
+                            val file = java.io.File(context.cacheDir, "shared_files").apply { mkdirs() }
+                            val imageFile = java.io.File(file, "note_export_${System.currentTimeMillis()}.html")
+                            imageFile.writeText("<html><head><meta charset='UTF-8'><style>body{font-family:sans-serif;padding:20px;background:#fff;} h1{color:#333;}</style></head><body><h1>${title}</h1><pre style='white-space:pre-wrap;'>${contentValue.text}</pre></body></html>")
+                            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", imageFile)
+                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/html"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(sendIntent, "分享为网页图片"))
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            android.widget.Toast.makeText(context, "分享失败", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                        showSettingsSheet = false
+                    }) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Image, contentDescription = "图片")
+                    }
+                    // Share as Word
+                    IconButton(onClick = {
+                        try {
+                            val file = java.io.File(context.cacheDir, "shared_files").apply { mkdirs() }
+                            val docFile = java.io.File(file, "note_${System.currentTimeMillis()}.doc")
+                            // A simple HTML file saved with .doc extension opens in Word perfectly!
+                            docFile.writeText("<html><head><meta charset='UTF-8'></head><body><h1>${title}</h1><p>${contentValue.text.replace("\n", "<br>")}</p></body></html>")
+                            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", docFile)
+                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "application/msword"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(sendIntent, "分享为Word"))
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            android.widget.Toast.makeText(context, "分享失败", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                        showSettingsSheet = false
+                    }) {
+                        Icon(androidx.compose.material.icons.Icons.Default.PictureAsPdf, contentDescription = "Word/PDF")
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Delete Note
+                if (note?.id != 0) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showSettingsSheet = false
+                                viewModel.deleteNote()
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("删除记事", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.navigationBarsPadding().height(16.dp))
+            }
+        }
+    }
 }
 
 @Composable
@@ -455,29 +586,6 @@ fun EditorCardLayout(
             )
 
             Spacer(modifier = Modifier.height(4.dp))
-
-            // Scrollable Note Markdown content input
-            OutlinedTextField(
-                value = contentValue,
-                onValueChange = onContentChange,
-                placeholder = { Text(Localization.getString("note_content_placeholder", currentLanguage), fontSize = 14.sp) },
-                textStyle = TextStyle(
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.Monospace,
-                    lineHeight = 20.sp
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
-                )
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
 
             // Markdown Quick Action Formatting Toolbar
             Row(
@@ -525,6 +633,29 @@ fun EditorCardLayout(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Scrollable Note Markdown content input
+            OutlinedTextField(
+                value = contentValue,
+                onValueChange = onContentChange,
+                placeholder = { Text(Localization.getString("note_content_placeholder", currentLanguage), fontSize = 14.sp) },
+                textStyle = TextStyle(
+                    fontSize = 14.sp,
+                    fontFamily = FontFamily.Monospace,
+                    lineHeight = 20.sp
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                )
+            )
         }
     }
 }
