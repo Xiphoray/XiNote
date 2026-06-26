@@ -5,7 +5,10 @@ on:
     branches: [ "main", "master", "develop" ]
   pull_request:
     branches: [ "main", "master", "develop" ]
-
+    
+permissions:
+  contents: write
+  
 jobs:
   build:
     name: Build APK
