@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatQuote
@@ -83,6 +85,9 @@ import android.content.Intent
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.SaveAlt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,6 +117,21 @@ fun EditNoteScreen(
     
     var showSettingsSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            val imageFile = generateNoteImage(context, title, contentValue.text, colorHex)
+            if (imageFile != null && imageFile.exists()) {
+                saveImageToGallery(context, imageFile)
+            } else {
+                Toast.makeText(context, "生成图片失败", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "需要存储权限以保存图片", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     BackHandler {
         if (title.isNotBlank() || (contentValue.text.isNotBlank() && contentValue.text != "# ")) {
@@ -184,6 +204,17 @@ fun EditNoteScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!isWideScreen) {
+                        IconButton(onClick = { selectedTab = if (selectedTab == 0) 1 else 0 }) {
+                            Icon(
+                                imageVector = if (selectedTab == 0) Icons.Default.Preview else Icons.Default.Edit,
+                                contentDescription = if (selectedTab == 0) "Preview" else "Edit",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+
                     // Settings/More button
                     IconButton(onClick = { showSettingsSheet = true }) {
                         Icon(
@@ -217,6 +248,7 @@ fun EditNoteScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .imePadding()
         ) {
             // Adaptive Multi-Pane Content Layout
             if (isWideScreen) {
@@ -293,29 +325,6 @@ fun EditNoteScreen(
                     }
                 }
             } else {
-                // Mobile compact tab switcher: Edit vs Preview tabs
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        icon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                        text = { Text(Localization.getString("edit", currentLanguage), fontSize = 13.sp, fontWeight = FontWeight.Bold) }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        icon = { Icon(Icons.Default.Preview, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                        text = { Text(Localization.getString("preview", currentLanguage), fontSize = 13.sp, fontWeight = FontWeight.Bold) }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -466,59 +475,98 @@ fun EditNoteScreen(
                 // Share options
                 Text("分享", style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                    IconButton(onClick = {
-                        val sendIntent = android.content.Intent().apply {
-                            action = android.content.Intent.ACTION_SEND
-                            putExtra(android.content.Intent.EXTRA_TEXT, "${title}\n\n${contentValue.text}")
-                            type = "text/plain"
-                        }
-                        context.startActivity(android.content.Intent.createChooser(sendIntent, null))
-                        showSettingsSheet = false
-                    }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.Share, contentDescription = "文本")
-                    }
-                    // Share as Image (using an HTML fallback for simplicity, but named properly) or just create a File and share
-                    IconButton(onClick = {
-                        try {
-                            val file = java.io.File(context.cacheDir, "shared_files").apply { mkdirs() }
-                            val imageFile = java.io.File(file, "note_export_${System.currentTimeMillis()}.html")
-                            imageFile.writeText("<html><head><meta charset='UTF-8'><style>body{font-family:sans-serif;padding:20px;background:#fff;} h1{color:#333;}</style></head><body><h1>${title}</h1><pre style='white-space:pre-wrap;'>${contentValue.text}</pre></body></html>")
-                            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", imageFile)
-                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                type = "text/html"
-                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = {
+                            val sendIntent = android.content.Intent().apply {
+                                action = android.content.Intent.ACTION_SEND
+                                putExtra(android.content.Intent.EXTRA_TEXT, "${title}\n\n${contentValue.text}")
+                                type = "text/plain"
                             }
-                            context.startActivity(android.content.Intent.createChooser(sendIntent, "分享为网页图片"))
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            android.widget.Toast.makeText(context, "分享失败", android.widget.Toast.LENGTH_SHORT).show()
+                            context.startActivity(android.content.Intent.createChooser(sendIntent, null))
+                            showSettingsSheet = false
+                        }) {
+                            Icon(androidx.compose.material.icons.Icons.Default.Share, contentDescription = "文本")
                         }
-                        showSettingsSheet = false
-                    }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.Image, contentDescription = "图片")
+                        Text("分享文本", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    // Share as Image (generates a beautiful styled PNG image)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = {
+                            try {
+                                val imageFile = generateNoteImage(context, title, contentValue.text, colorHex)
+                                if (imageFile != null && imageFile.exists()) {
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", imageFile)
+                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        type = "image/png"
+                                        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(android.content.Intent.createChooser(sendIntent, "分享为图片"))
+                                } else {
+                                    android.widget.Toast.makeText(context, "生成图片失败", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                android.widget.Toast.makeText(context, "分享失败", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            showSettingsSheet = false
+                        }) {
+                            Icon(androidx.compose.material.icons.Icons.Default.Image, contentDescription = "图片")
+                        }
+                        Text("分享图片", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    // Save Image
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                val imageFile = generateNoteImage(context, title, contentValue.text, colorHex)
+                                if (imageFile != null && imageFile.exists()) {
+                                    saveImageToGallery(context, imageFile)
+                                } else {
+                                    android.widget.Toast.makeText(context, "生成图片失败", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                    val imageFile = generateNoteImage(context, title, contentValue.text, colorHex)
+                                    if (imageFile != null && imageFile.exists()) {
+                                        saveImageToGallery(context, imageFile)
+                                    } else {
+                                        android.widget.Toast.makeText(context, "生成图片失败", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    permissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                }
+                            }
+                            showSettingsSheet = false
+                        }) {
+                            Icon(androidx.compose.material.icons.Icons.Default.SaveAlt, contentDescription = "保存图片")
+                        }
+                        Text("保存图片", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     // Share as Word
-                    IconButton(onClick = {
-                        try {
-                            val file = java.io.File(context.cacheDir, "shared_files").apply { mkdirs() }
-                            val docFile = java.io.File(file, "note_${System.currentTimeMillis()}.doc")
-                            // A simple HTML file saved with .doc extension opens in Word perfectly!
-                            docFile.writeText("<html><head><meta charset='UTF-8'></head><body><h1>${title}</h1><p>${contentValue.text.replace("\n", "<br>")}</p></body></html>")
-                            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", docFile)
-                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                type = "application/msword"
-                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = {
+                            try {
+                                val file = java.io.File(context.cacheDir, "shared_files").apply { mkdirs() }
+                                val docFile = java.io.File(file, "note_${System.currentTimeMillis()}.doc")
+                                // A simple HTML file saved with .doc extension opens in Word perfectly!
+                                docFile.writeText("<html><head><meta charset='UTF-8'></head><body><h1>${title}</h1><p>${contentValue.text.replace("\n", "<br>")}</p></body></html>")
+                                val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", docFile)
+                                val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "application/msword"
+                                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(sendIntent, "分享为Word"))
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                android.widget.Toast.makeText(context, "分享失败", android.widget.Toast.LENGTH_SHORT).show()
                             }
-                            context.startActivity(android.content.Intent.createChooser(sendIntent, "分享为Word"))
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            android.widget.Toast.makeText(context, "分享失败", android.widget.Toast.LENGTH_SHORT).show()
+                            showSettingsSheet = false
+                        }) {
+                            Icon(androidx.compose.material.icons.Icons.Default.Description, contentDescription = "Word")
                         }
-                        showSettingsSheet = false
-                    }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.PictureAsPdf, contentDescription = "Word/PDF")
+                        Text("导出Word", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -667,4 +715,156 @@ fun borderFromColor(bg: Color): androidx.compose.foundation.BorderStroke? {
         width = 1.dp,
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
     )
+}
+
+private fun saveImageToGallery(context: android.content.Context, imageFile: java.io.File) {
+    try {
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "Note_${System.currentTimeMillis()}.png")
+            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Notes")
+                put(android.provider.MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
+
+        val uri = context.contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        if (uri != null) {
+            context.contentResolver.openOutputStream(uri).use { out ->
+                if (out != null) {
+                    java.io.FileInputStream(imageFile).copyTo(out)
+                }
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                values.clear()
+                values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
+                context.contentResolver.update(uri, values, null, null)
+            }
+            android.widget.Toast.makeText(context, "图片已保存至相册", android.widget.Toast.LENGTH_SHORT).show()
+        } else {
+            android.widget.Toast.makeText(context, "保存失败", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        android.widget.Toast.makeText(context, "保存出错: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun generateNoteImage(context: android.content.Context, title: String, content: String, colorHex: String): java.io.File? {
+    try {
+        val width = 1080
+        
+        val titlePaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 48f
+            isAntiAlias = true
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.SERIF, android.graphics.Typeface.BOLD)
+        }
+        
+        val contentPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#333333")
+            textSize = 36f
+            isAntiAlias = true
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.SERIF, android.graphics.Typeface.NORMAL)
+        }
+        
+        val cleanContent = content
+            .replace(Regex("(?m)^#+\\s+"), "")
+            .replace(Regex("\\*\\*(.*?)\\*\\*"), "$1")
+            .replace(Regex("\\*(.*?)\\*"), "$1")
+            .replace(Regex("`([^`]+)`"), "$1")
+            .trim()
+            
+        val padding = 80
+        val textWidth = width - (padding * 2)
+        
+        fun wrapText(text: String, paint: android.graphics.Paint, maxWidth: Int): List<String> {
+            val lines = mutableListOf<String>()
+            text.split("\n").forEach { paragraph ->
+                if (paragraph.isEmpty()) {
+                    lines.add("")
+                    return@forEach
+                }
+                var start = 0
+                while (start < paragraph.length) {
+                    val count = paint.breakText(paragraph, start, paragraph.length, true, maxWidth.toFloat(), null)
+                    lines.add(paragraph.substring(start, start + count))
+                    start += count
+                }
+            }
+            return lines
+        }
+        
+        val titleLines = wrapText(title.ifBlank { "无标题" }, titlePaint, textWidth)
+        val contentLines = wrapText(cleanContent, contentPaint, textWidth)
+        
+        val lineSpacing = 16f
+        val titleLineHeight = titlePaint.fontMetrics.descent - titlePaint.fontMetrics.ascent + lineSpacing
+        val contentLineHeight = contentPaint.fontMetrics.descent - contentPaint.fontMetrics.ascent + lineSpacing
+        
+        var totalHeight = padding * 2
+        totalHeight += (titleLines.size * titleLineHeight).toInt()
+        totalHeight += 40 
+        totalHeight += (contentLines.size * contentLineHeight).toInt()
+        
+        if (totalHeight < 600) {
+            totalHeight = 600
+        }
+        
+        val bitmap = android.graphics.Bitmap.createBitmap(width, totalHeight, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        
+        val bgColorInt = when (colorHex) {
+            "sage" -> android.graphics.Color.parseColor("#F1F8E9")
+            "sky" -> android.graphics.Color.parseColor("#E1F5FE")
+            "lavender" -> android.graphics.Color.parseColor("#F3E5F5")
+            "rose" -> android.graphics.Color.parseColor("#FCE4EC")
+            "peach" -> android.graphics.Color.parseColor("#FFF3E0")
+            "slate" -> android.graphics.Color.parseColor("#ECEFF1")
+            else -> android.graphics.Color.parseColor("#FAFAF9")
+        }
+        
+        canvas.drawColor(bgColorInt)
+        
+        val borderPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#A1887F")
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 6f
+            isAntiAlias = true
+        }
+        canvas.drawRect(20f, 20f, width - 20f, totalHeight - 20f, borderPaint)
+        
+        borderPaint.strokeWidth = 2f
+        canvas.drawRect(28f, 28f, width - 28f, totalHeight - 28f, borderPaint)
+        
+        var currentY = padding.toFloat() - titlePaint.fontMetrics.ascent
+        
+        titleLines.forEach { line ->
+            canvas.drawText(line, padding.toFloat(), currentY, titlePaint)
+            currentY += titleLineHeight
+        }
+        
+        val dividerPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#D7CCC8")
+            strokeWidth = 3f
+        }
+        currentY += 10
+        canvas.drawLine(padding.toFloat(), currentY, width - padding.toFloat(), currentY, dividerPaint)
+        currentY += 40 - contentPaint.fontMetrics.ascent
+        
+        contentLines.forEach { line ->
+            canvas.drawText(line, padding.toFloat(), currentY, contentPaint)
+            currentY += contentLineHeight
+        }
+        
+        val cacheFolder = java.io.File(context.cacheDir, "shared_files").apply { mkdirs() }
+        val imageFile = java.io.File(cacheFolder, "note_image_${System.currentTimeMillis()}.png")
+        java.io.FileOutputStream(imageFile).use { out ->
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+        }
+        return imageFile
+    } catch (e: Exception) {
+        e.printStackTrace()
+        return null
+    }
 }

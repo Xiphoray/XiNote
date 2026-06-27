@@ -33,7 +33,8 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
         return WebDavConfig(
             url = sp.getString("url", "") ?: "",
             username = sp.getString("username", "") ?: "",
-            password = sp.getString("password", "") ?: ""
+            password = sp.getString("password", "") ?: "",
+            path = sp.getString("path", "") ?: ""
         )
     }
 
@@ -43,6 +44,7 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
             putString("url", config.url)
             putString("username", config.username)
             putString("password", config.password)
+            putString("path", config.path)
             apply()
         }
     }
@@ -59,10 +61,20 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
 
             val credential = Credentials.basic(config.username, config.password)
             var fullUrl = config.url.trim()
-            if (!fullUrl.endsWith(".json")) {
+            if (!fullUrl.endsWith("/")) {
+                fullUrl += "/"
+            }
+            if (config.path.isNotBlank()) {
+                var pathTrimmed = config.path.trim()
+                if (pathTrimmed.startsWith("/")) {
+                    pathTrimmed = pathTrimmed.substring(1)
+                }
+                fullUrl += pathTrimmed
                 if (!fullUrl.endsWith("/")) {
                     fullUrl += "/"
                 }
+            }
+            if (!fullUrl.endsWith(".json")) {
                 fullUrl += "notes_backup.json"
             }
 
@@ -72,6 +84,7 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
             val request = Request.Builder()
                 .url(fullUrl)
                 .header("Authorization", credential)
+                .header("User-Agent", "XiNote/1.0 (Android)")
                 .put(requestBody)
                 .build()
 
@@ -93,16 +106,27 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
         try {
             val credential = Credentials.basic(config.username, config.password)
             var fullUrl = config.url.trim()
-            if (!fullUrl.endsWith(".json")) {
+            if (!fullUrl.endsWith("/")) {
+                fullUrl += "/"
+            }
+            if (config.path.isNotBlank()) {
+                var pathTrimmed = config.path.trim()
+                if (pathTrimmed.startsWith("/")) {
+                    pathTrimmed = pathTrimmed.substring(1)
+                }
+                fullUrl += pathTrimmed
                 if (!fullUrl.endsWith("/")) {
                     fullUrl += "/"
                 }
+            }
+            if (!fullUrl.endsWith(".json")) {
                 fullUrl += "notes_backup.json"
             }
 
             val request = Request.Builder()
                 .url(fullUrl)
                 .header("Authorization", credential)
+                .header("User-Agent", "XiNote/1.0 (Android)")
                 .get()
                 .build()
 
@@ -132,5 +156,6 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
 data class WebDavConfig(
     val url: String,
     val username: String,
-    val password: String
+    val password: String,
+    val path: String = ""
 )

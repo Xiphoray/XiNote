@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 sealed interface Screen {
     object Home : Screen
     object Settings : Screen
+    object About : Screen
     data class EditNote(val noteId: Int?) : Screen
 }
 
@@ -193,6 +194,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
     fun navigateToSettings() {
         currentScreen.value = Screen.Settings
+    }
+
+    fun navigateToAbout() {
+        currentScreen.value = Screen.About
     }
 
     fun navigateToEditNote(noteId: Int?, context: Context? = null) {

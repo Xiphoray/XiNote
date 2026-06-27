@@ -59,14 +59,34 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val screen by viewModel.currentScreen.collectAsState()
 
-                    // Enhanced ancient-style animated screen transitions
+                    // Enhanced sliding transitions for smooth, fluent popups
                     androidx.compose.animation.AnimatedContent(
                         targetState = screen,
                         label = "ScreenTransition",
                         transitionSpec = {
-                            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(400)) + 
-                            androidx.compose.animation.scaleIn(initialScale = 0.95f, animationSpec = androidx.compose.animation.core.tween(400)) togetherWith
-                            androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(400))
+                            if (targetState is Screen.EditNote) {
+                                // Slide in from bottom (bottom sheet style) for a beautiful editor entrance
+                                (androidx.compose.animation.slideInVertically(
+                                    initialOffsetY = { it },
+                                    animationSpec = androidx.compose.animation.core.tween(350, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                                ) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(250))).togetherWith(
+                                    androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(200))
+                                )
+                            } else if (initialState is Screen.EditNote) {
+                                // Slide out to bottom when returning from the editor
+                                androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(200)).togetherWith(
+                                    androidx.compose.animation.slideOutVertically(
+                                        targetOffsetY = { it },
+                                        animationSpec = androidx.compose.animation.core.tween(350, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                                    ) + androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250))
+                                )
+                            } else {
+                                // Default crossfade and scale for settings/home transition
+                                (androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) + 
+                                 androidx.compose.animation.scaleIn(initialScale = 0.96f, animationSpec = androidx.compose.animation.core.tween(300))).togetherWith(
+                                    androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(200))
+                                )
+                            }
                         }
                     ) { currentScreen ->
                         when (currentScreen) {
@@ -75,6 +95,9 @@ class MainActivity : ComponentActivity() {
                             }
                             is Screen.Settings -> {
                                 com.example.ui.SettingsScreen(viewModel = viewModel)
+                            }
+                            is Screen.About -> {
+                                com.example.ui.AboutScreen(viewModel = viewModel)
                             }
                             is Screen.EditNote -> {
                                 EditNoteScreen(viewModel = viewModel)

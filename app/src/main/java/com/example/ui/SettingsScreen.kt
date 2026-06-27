@@ -36,6 +36,8 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -89,6 +91,7 @@ fun SettingsScreen(
     var url by remember { mutableStateOf(webDavConfig.url) }
     var username by remember { mutableStateOf(webDavConfig.username) }
     var password by remember { mutableStateOf(webDavConfig.password) }
+    var path by remember { mutableStateOf(webDavConfig.path) }
 
     var isBackingUp by remember { mutableStateOf(false) }
     var isRestoring by remember { mutableStateOf(false) }
@@ -100,7 +103,8 @@ fun SettingsScreen(
             WebDavConfig(
                 url = url.trim(),
                 username = username.trim(),
-                password = password
+                password = password,
+                path = path.trim()
             )
         )
     }
@@ -434,6 +438,27 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // WebDAV Path
+                    OutlinedTextField(
+                        value = path,
+                        onValueChange = {
+                            path = it
+                            saveConfig()
+                        },
+                        label = { Text(Localization.getString("webdav_path", currentLanguage), fontSize = 12.sp) },
+                        placeholder = { Text("/backup/notes", fontSize = 12.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     // WebDAV Password
                     OutlinedTextField(
                         value = password,
@@ -568,6 +593,62 @@ fun SettingsScreen(
                             }
                         }
                     }
+                }
+            }
+
+            // SECTION 4: About & Usage Guide Button
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            saveConfig()
+                            viewModel.navigateToAbout()
+                        }
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "关于 & 使用指南",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "详细了解墨韵记事各项配置与备份指南",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "查看",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
