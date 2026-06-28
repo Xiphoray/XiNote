@@ -17,8 +17,8 @@ android {
     applicationId = "com.aistudio.xinote.vqzmx"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+    versionName = "1.0.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -46,9 +46,9 @@ android {
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
-    //debug {
-    //  signingConfig = signingConfigs.getByName("debugConfig")
-    //}
+    debug {
+      signingConfig = signingConfigs.getByName("debugConfig")
+    }
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
