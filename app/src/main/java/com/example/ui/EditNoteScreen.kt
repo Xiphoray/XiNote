@@ -88,6 +88,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.SaveAlt
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.filled.Redo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,6 +115,49 @@ fun EditNoteScreen(
     var contentValue by rememberSaveable(noteId, stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(note?.content ?: ""))
     }
+    
+    val undoStack = remember(noteId) { mutableStateListOf<TextFieldValue>() }
+    val redoStack = remember(noteId) { mutableStateListOf<TextFieldValue>() }
+    var lastSaveTime by remember(noteId) { mutableLongStateOf(System.currentTimeMillis()) }
+
+    fun updateContent(newValue: TextFieldValue) {
+        if (contentValue.text != newValue.text) {
+            val currentTime = System.currentTimeMillis()
+            val textDiff = Math.abs(contentValue.text.length - newValue.text.length)
+            val isWhitespace = newValue.text.length > contentValue.text.length && newValue.text.lastOrNull()?.isWhitespace() == true
+            
+            if (textDiff > 1 || (currentTime - lastSaveTime > 1000) || isWhitespace) {
+                if (undoStack.isEmpty() || undoStack.last().text != contentValue.text) {
+                    undoStack.add(contentValue)
+                    if (undoStack.size > 100) undoStack.removeAt(0)
+                }
+                lastSaveTime = currentTime
+                redoStack.clear()
+            }
+        }
+        contentValue = newValue
+    }
+
+    fun performUndo() {
+        if (undoStack.isNotEmpty()) {
+            if (redoStack.isEmpty() || redoStack.last().text != contentValue.text) {
+                redoStack.add(contentValue)
+            }
+            contentValue = undoStack.removeLast()
+            lastSaveTime = System.currentTimeMillis()
+        }
+    }
+
+    fun performRedo() {
+        if (redoStack.isNotEmpty()) {
+            if (undoStack.isEmpty() || undoStack.last().text != contentValue.text) {
+                undoStack.add(contentValue)
+            }
+            contentValue = redoStack.removeLast()
+            lastSaveTime = System.currentTimeMillis()
+        }
+    }
+
     var colorHex by rememberSaveable(noteId) { mutableStateOf(note?.colorHex ?: "default") }
     var isPinned by rememberSaveable(noteId) { mutableStateOf(note?.isPinned ?: false) }
     var showInWidget by rememberSaveable(noteId) { mutableStateOf(note?.showInWidget ?: true) }
@@ -171,12 +218,19 @@ fun EditNoteScreen(
             else -> ""
         }
 
+        if (undoStack.isEmpty() || undoStack.last().text != contentValue.text) {
+            undoStack.add(contentValue)
+            if (undoStack.size > 100) undoStack.removeAt(0)
+        }
+        redoStack.clear()
+
         newText.replace(start, end, tagOutput)
         val nextSelectionCursor = start + tagOutput.length
         contentValue = TextFieldValue(
             text = newText.toString(),
             selection = androidx.compose.ui.text.TextRange(nextSelectionCursor)
         )
+        lastSaveTime = System.currentTimeMillis()
     }
 
     Scaffold(
@@ -204,6 +258,22 @@ fun EditNoteScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Undo / Redo buttons
+                    IconButton(onClick = { performUndo() }, enabled = undoStack.isNotEmpty()) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Filled.Undo,
+                            contentDescription = "Undo",
+                            tint = if (undoStack.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        )
+                    }
+                    IconButton(onClick = { performRedo() }, enabled = redoStack.isNotEmpty()) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Filled.Redo,
+                            contentDescription = "Redo",
+                            tint = if (redoStack.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        )
+                    }
+
                     if (!isWideScreen) {
                         IconButton(onClick = { selectedTab = if (selectedTab == 0) 1 else 0 }) {
                             Icon(
@@ -270,7 +340,7 @@ fun EditNoteScreen(
                             title = title,
                             onTitleChange = { title = it },
                             contentValue = contentValue,
-                            onContentChange = { contentValue = it },
+                            onContentChange = { updateContent(it) },
                             noteCardColor = noteCardColor,
                             onInsertMarkdown = { insertMarkdown(it) },
                             currentLanguage = currentLanguage
@@ -337,7 +407,7 @@ fun EditNoteScreen(
                             title = title,
                             onTitleChange = { title = it },
                             contentValue = contentValue,
-                            onContentChange = { contentValue = it },
+                            onContentChange = { updateContent(it) },
                             noteCardColor = noteCardColor,
                             onInsertMarkdown = { insertMarkdown(it) },
                             currentLanguage = currentLanguage
