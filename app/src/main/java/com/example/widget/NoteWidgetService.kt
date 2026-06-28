@@ -65,6 +65,9 @@ class NoteWidgetFactory(private val context: Context) : RemoteViewsService.Remot
         val indicatorColor = getIndicatorColor(note.colorHex, isDarkMode, plusIconColor)
         views.setInt(R.id.note_color_bar, "setColorFilter", indicatorColor)
         
+        val dividerColor = if (isDarkMode) 0xFF342E2C.toInt() else 0xFFE5DED8.toInt()
+        views.setInt(R.id.item_divider, "setBackgroundColor", dividerColor)
+        
         val fillInIntent = Intent().apply {
             putExtra("action", "EDIT_NOTE")
             putExtra("note_id", note.id)

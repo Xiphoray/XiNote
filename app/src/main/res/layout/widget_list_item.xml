@@ -1,51 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/note_slot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp"
-    android:paddingLeft="2dp"
-    android:paddingRight="2dp">
+    android:orientation="vertical">
 
-    <!-- Left Rounded Accent Color Bar -->
-    <ImageView
-        android:id="@+id/note_color_bar"
-        android:layout_width="4dp"
-        android:layout_height="32dp"
-        android:scaleType="fitXY"
-        android:src="@drawable/widget_color_bar" />
-
-    <!-- Text Info -->
     <LinearLayout
-        android:layout_width="0dp"
+        android:id="@+id/note_slot"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="10dp"
-        android:orientation="vertical">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:paddingLeft="2dp"
+        android:paddingRight="2dp">
 
-        <TextView
-            android:id="@+id/note_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="#1F1B1A"
-            android:textSize="14sp"
-            android:fontFamily="serif"
-            android:textStyle="bold" />
+        <!-- Left Rounded Accent Color Bar -->
+        <ImageView
+            android:id="@+id/note_color_bar"
+            android:layout_width="4dp"
+            android:layout_height="36dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_color_bar" />
 
-        <TextView
-            android:id="@+id/note_content"
-            android:layout_width="match_parent"
+        <!-- Text Info -->
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:ellipsize="end"
-            android:maxLines="4"
-            android:textColor="#4E4442"
-            android:textSize="12sp"
-            android:fontFamily="serif" />
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/note_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#1F1B1A"
+                android:textSize="16sp"
+                android:fontFamily="serif"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/note_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:maxLines="4"
+                android:textColor="#4E4442"
+                android:textSize="14sp"
+                android:fontFamily="serif" />
+        </LinearLayout>
     </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/item_divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="#E5DED8" />
 </LinearLayout>
+
