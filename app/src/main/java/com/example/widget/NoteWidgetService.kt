@@ -101,8 +101,8 @@ class NoteWidgetFactory(private val context: Context) : RemoteViewsService.Remot
             .replace(Regex("(?m)^-\\\\s+"), "")
             .replace(Regex("(?m)^\\\\*\\\\s+"), "")
             .trim()
-        if (clean.length > 80) {
-            clean = clean.substring(0, 77) + "..."
+        if (clean.length > 250) {
+            clean = clean.substring(0, 247) + "..."
         }
         return clean.ifBlank { "无具体内容" }
     }

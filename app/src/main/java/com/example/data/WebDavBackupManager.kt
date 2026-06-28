@@ -7,6 +7,7 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Credentials
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -32,6 +33,7 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
         val sp = context.getSharedPreferences("webdav_settings", Context.MODE_PRIVATE)
         return WebDavConfig(
             url = sp.getString("url", "") ?: "",
+            port = sp.getString("port", "") ?: "",
             username = sp.getString("username", "") ?: "",
             password = sp.getString("password", "") ?: "",
             path = sp.getString("path", "") ?: ""
@@ -42,6 +44,7 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
         val sp = context.getSharedPreferences("webdav_settings", Context.MODE_PRIVATE)
         sp.edit().apply {
             putString("url", config.url)
+            putString("port", config.port)
             putString("username", config.username)
             putString("password", config.password)
             putString("path", config.path)
@@ -61,6 +64,10 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
 
             val credential = Credentials.basic(config.username, config.password)
             var fullUrl = config.url.trim()
+            val parsedUrl = fullUrl.toHttpUrlOrNull()
+            if (parsedUrl != null && config.port.isNotBlank() && config.port.toIntOrNull() != null) {
+                fullUrl = parsedUrl.newBuilder().port(config.port.toInt()).build().toString()
+            }
             if (!fullUrl.endsWith("/")) {
                 fullUrl += "/"
             }
@@ -106,6 +113,10 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
         try {
             val credential = Credentials.basic(config.username, config.password)
             var fullUrl = config.url.trim()
+            val parsedUrl = fullUrl.toHttpUrlOrNull()
+            if (parsedUrl != null && config.port.isNotBlank() && config.port.toIntOrNull() != null) {
+                fullUrl = parsedUrl.newBuilder().port(config.port.toInt()).build().toString()
+            }
             if (!fullUrl.endsWith("/")) {
                 fullUrl += "/"
             }
@@ -155,6 +166,7 @@ class WebDavBackupManager(private val context: Context, private val noteDao: Not
 
 data class WebDavConfig(
     val url: String,
+    val port: String = "",
     val username: String,
     val password: String,
     val path: String = ""

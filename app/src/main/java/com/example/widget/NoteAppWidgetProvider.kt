@@ -118,6 +118,18 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
                     views.setTextColor(R.id.widget_title, textColorHeader)
                     views.setInt(R.id.widget_divider, "setBackgroundColor", dividerColor)
 
+                    // Click intent for the widget title to open home
+                    val homeIntent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    val homePendingIntent = PendingIntent.getActivity(
+                        context,
+                        101, // Use a different request code
+                        homeIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    views.setOnClickPendingIntent(R.id.widget_title, homePendingIntent)
+
                     // Plus icon tint
                     views.setInt(R.id.btn_add_note, "setColorFilter", plusIconColor)
 
@@ -195,8 +207,8 @@ class NoteAppWidgetProvider : AppWidgetProvider() {
             .replace(Regex("(?m)^-\\s+"), "") // List items
             .replace(Regex("(?m)^\\*\\s+"), "") // List items
             .trim()
-        if (clean.length > 80) {
-            clean = clean.substring(0, 77) + "..."
+        if (clean.length > 250) {
+            clean = clean.substring(0, 247) + "..."
         }
         return clean.ifBlank { "无具体内容" }
     }

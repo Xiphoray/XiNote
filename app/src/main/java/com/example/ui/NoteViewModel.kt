@@ -98,14 +98,17 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     fun autoAssignTopic(context: Context) {
         viewModelScope.launch {
             val notes = repository.getLatestNotes(1000)
+            var count = 0
             notes.forEach { note ->
                 if (note.topic == "默认" || note.topic.isBlank()) {
                     val assignedTopic = getAutoTopic(note.title, note.content)
                     if (assignedTopic != "默认") {
                         repository.insert(note.copy(topic = assignedTopic))
+                        count++
                     }
                 }
             }
+            android.widget.Toast.makeText(context, "一键智能分配主题完成 (更新了 $count 条记事)", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 

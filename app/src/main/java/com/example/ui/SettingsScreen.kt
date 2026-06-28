@@ -89,6 +89,7 @@ fun SettingsScreen(
 
     val webDavConfig = remember { viewModel.getWebDavConfig() }
     var url by remember { mutableStateOf(webDavConfig.url) }
+    var port by remember { mutableStateOf(webDavConfig.port) }
     var username by remember { mutableStateOf(webDavConfig.username) }
     var password by remember { mutableStateOf(webDavConfig.password) }
     var path by remember { mutableStateOf(webDavConfig.path) }
@@ -102,6 +103,7 @@ fun SettingsScreen(
         viewModel.saveWebDavConfig(
             WebDavConfig(
                 url = url.trim(),
+                port = port.trim(),
                 username = username.trim(),
                 password = password,
                 path = path.trim()
@@ -407,6 +409,28 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // WebDAV Port Input
+                    OutlinedTextField(
+                        value = port,
+                        onValueChange = {
+                            port = it
+                            saveConfig()
+                        },
+                        label = { Text(Localization.getString("webdav_port", currentLanguage), fontSize = 12.sp) },
+                        placeholder = { Text("例如：8080 (选填)", fontSize = 12.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,

@@ -214,9 +214,9 @@ fun MainScreen(
                         val groupByTopic by viewModel.groupByTopic.collectAsState()
                         
                         androidx.compose.material3.DropdownMenuItem(
-                            text = { Text(if (listLayout == 0) "当前: 一列" else if (listLayout == 1) "当前: 两列" else "当前: 瀑布流") },
+                            text = { Text(if (listLayout == 0) "当前: 一列" else "当前: 两列") },
                             onClick = {
-                                viewModel.setListLayout(context, (listLayout + 1) % 3)
+                                viewModel.setListLayout(context, (listLayout + 1) % 2)
                             }
                         )
                         androidx.compose.material3.DropdownMenuItem(
@@ -301,23 +301,16 @@ fun MainScreen(
                 val screenWidthDp = configuration.screenWidthDp
                 
                 val gridColumns = when (listLayout) {
-                    0 -> StaggeredGridCells.Fixed(1)
-                    1 -> StaggeredGridCells.Fixed(2)
-                    2 -> {
-                        when {
-                            screenWidthDp >= 900 -> StaggeredGridCells.Fixed(4)
-                            screenWidthDp >= 600 -> StaggeredGridCells.Fixed(3)
-                            else -> StaggeredGridCells.Fixed(2)
-                        }
-                    }
-                    else -> StaggeredGridCells.Fixed(2)
+                    0 -> GridCells.Fixed(1)
+                    1 -> GridCells.Fixed(2)
+                    else -> GridCells.Fixed(2)
                 }
 
-                LazyVerticalStaggeredGrid(
+                LazyVerticalGrid(
                     columns = gridColumns,
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalItemSpacing = 12.dp,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     if (groupByTopic) {
@@ -326,7 +319,7 @@ fun MainScreen(
                             val pinnedNotes = topicNotes.filter { it.isPinned }
                             val otherNotes = topicNotes.filter { !it.isPinned }
                             
-                            item(span = StaggeredGridItemSpan.FullLine) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
                                 Text(
                                     text = "主题: $topic",
                                     style = MaterialTheme.typography.titleMedium,
@@ -367,7 +360,7 @@ fun MainScreen(
                         val otherNotes = notes.filter { !it.isPinned }
 
                         if (pinnedNotes.isNotEmpty()) {
-                            item(span = StaggeredGridItemSpan.FullLine) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
                                 Text(
                                     text = Localization.getString("pinned", currentLanguage),
                                     style = MaterialTheme.typography.titleSmall,
@@ -392,7 +385,7 @@ fun MainScreen(
 
                         if (otherNotes.isNotEmpty()) {
                             if (pinnedNotes.isNotEmpty()) {
-                                item(span = StaggeredGridItemSpan.FullLine) {
+                                item(span = { GridItemSpan(maxLineSpan) }) {
                                     Text(
                                         text = Localization.getString("others", currentLanguage),
                                         style = MaterialTheme.typography.titleSmall,
@@ -434,20 +427,32 @@ fun MainScreen(
     }
 }
 
-fun getCategoryEmoji(title: String, content: String): String {
-    val text = (title + " " + content).lowercase(Locale.getDefault())
-    return when {
-        text.contains("code") || text.contains("bug") || text.contains("develop") || text.contains("programming") || text.contains("编程") || text.contains("代码") -> "💻"
-        text.contains("plan") || text.contains("todo") || text.contains("schedule") || text.contains("meeting") || text.contains("agenda") || text.contains("计划") || text.contains("会议") -> "📅"
-        text.contains("shopping") || text.contains("buy") || text.contains("cart") || text.contains("store") || text.contains("购物") || text.contains("买") || text.contains("超市") -> "🛒"
-        text.contains("idea") || text.contains("creative") || text.contains("thought") || text.contains("brainstorm") || text.contains("点子") || text.contains("想法") || text.contains("灵感") -> "💡"
-        text.contains("love") || text.contains("heart") || text.contains("like") || text.contains("anniversary") || text.contains("爱") || text.contains("喜欢") || text.contains("纪念日") || text.contains("情侣") -> "💖"
-        text.contains("finance") || text.contains("money") || text.contains("cost") || text.contains("pay") || text.contains("salary") || text.contains("钱") || text.contains("账单") || text.contains("工资") || text.contains("理财") -> "💵"
-        text.contains("study") || text.contains("learn") || text.contains("read") || text.contains("book") || text.contains("学习") || text.contains("看书") || text.contains("书") || text.contains("课程") -> "📚"
-        text.contains("music") || text.contains("song") || text.contains("sing") || text.contains("concert") || text.contains("音乐") || text.contains("歌") || text.contains("演唱会") -> "🎵"
-        text.contains("food") || text.contains("eat") || text.contains("cook") || text.contains("recipe") || text.contains("饭") || text.contains("吃") || text.contains("菜谱") || text.contains("美味") -> "🍕"
-        text.contains("sport") || text.contains("run") || text.contains("workout") || text.contains("gym") || text.contains("health") || text.contains("运动") || text.contains("跑") || text.contains("健身") || text.contains("健康") -> "🏃"
-        text.contains("travel") || text.contains("trip") || text.contains("flight") || text.contains("vacation") || text.contains("旅游") || text.contains("出行") || text.contains("飞机") || text.contains("度假") -> "✈️"
+fun getCategoryEmoji(topic: String, title: String, content: String): String {
+    return when (topic) {
+        "工作/代码" -> "💻"
+        "计划/待办" -> "📅"
+        "购物" -> "🛒"
+        "灵感/点子" -> "💡"
+        "情感/纪念日" -> "💖"
+        "财务/理财" -> "💵"
+        "学习" -> "📚"
+        "默认" -> {
+            val text = (title + " " + content).lowercase(Locale.getDefault())
+            when {
+                text.contains("code") || text.contains("bug") || text.contains("develop") || text.contains("programming") || text.contains("编程") || text.contains("代码") -> "💻"
+                text.contains("plan") || text.contains("todo") || text.contains("schedule") || text.contains("meeting") || text.contains("agenda") || text.contains("计划") || text.contains("会议") -> "📅"
+                text.contains("shopping") || text.contains("buy") || text.contains("cart") || text.contains("store") || text.contains("购物") || text.contains("买") || text.contains("超市") -> "🛒"
+                text.contains("idea") || text.contains("creative") || text.contains("thought") || text.contains("brainstorm") || text.contains("点子") || text.contains("想法") || text.contains("灵感") -> "💡"
+                text.contains("love") || text.contains("heart") || text.contains("like") || text.contains("anniversary") || text.contains("爱") || text.contains("喜欢") || text.contains("纪念日") || text.contains("情侣") -> "💖"
+                text.contains("finance") || text.contains("money") || text.contains("cost") || text.contains("pay") || text.contains("salary") || text.contains("钱") || text.contains("账单") || text.contains("工资") || text.contains("理财") -> "💵"
+                text.contains("study") || text.contains("learn") || text.contains("read") || text.contains("book") || text.contains("学习") || text.contains("看书") || text.contains("书") || text.contains("课程") -> "📚"
+                text.contains("music") || text.contains("song") || text.contains("sing") || text.contains("concert") || text.contains("音乐") || text.contains("歌") || text.contains("演唱会") -> "🎵"
+                text.contains("food") || text.contains("eat") || text.contains("cook") || text.contains("recipe") || text.contains("饭") || text.contains("吃") || text.contains("菜谱") || text.contains("美味") -> "🍕"
+                text.contains("sport") || text.contains("run") || text.contains("workout") || text.contains("gym") || text.contains("health") || text.contains("运动") || text.contains("跑") || text.contains("健身") || text.contains("健康") -> "🏃"
+                text.contains("travel") || text.contains("trip") || text.contains("flight") || text.contains("vacation") || text.contains("旅游") || text.contains("出行") || text.contains("飞机") || text.contains("度假") -> "✈️"
+                else -> "📝"
+            }
+        }
         else -> "📝"
     }
 }
@@ -466,7 +471,7 @@ fun NoteCard(
 ) {
     val cardColor = getNoteCardColor(note.colorHex, isDark)
     val dateFormat = remember { SimpleDateFormat("MM月dd日 HH:mm", Locale.getDefault()) }
-    val categoryEmoji = remember(note.title, note.content) { getCategoryEmoji(note.title, note.content) }
+    val categoryEmoji = remember(note.topic, note.title, note.content) { getCategoryEmoji(note.topic, note.title, note.content) }
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
