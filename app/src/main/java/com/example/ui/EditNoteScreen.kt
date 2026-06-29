@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,6 +88,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -159,11 +161,38 @@ fun EditNoteScreen(
     }
 
     var colorHex by rememberSaveable(noteId) { mutableStateOf(note?.colorHex ?: "default") }
+    var topic by rememberSaveable(noteId) { mutableStateOf(note?.topic ?: "默认") }
     var isPinned by rememberSaveable(noteId) { mutableStateOf(note?.isPinned ?: false) }
     var showInWidget by rememberSaveable(noteId) { mutableStateOf(note?.showInWidget ?: true) }
     
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    if (showDeleteConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text(Localization.getString("delete", currentLanguage) ?: "删除记事") },
+            text = { Text("确定要删除这条记事吗？删除后将无法恢复。") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        viewModel.deleteNote()
+                    }
+                ) {
+                    Text(Localization.getString("delete", currentLanguage) ?: "删除", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { showDeleteConfirm = false }
+                ) {
+                    Text(Localization.getString("cancel", currentLanguage) ?: "取消")
+                }
+            }
+        )
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -181,11 +210,7 @@ fun EditNoteScreen(
     }
 
     BackHandler {
-        if (title.isNotBlank() || (contentValue.text.isNotBlank() && contentValue.text != "# ")) {
-            viewModel.saveNote(title, contentValue.text, colorHex, isPinned, showInWidget)
-        } else {
-            viewModel.navigateToHome()
-        }
+        viewModel.navigateToHome()
     }
 
     val isDark = isSystemInDarkTheme()
@@ -275,14 +300,30 @@ fun EditNoteScreen(
                     }
 
                     if (!isWideScreen) {
-                        IconButton(onClick = { selectedTab = if (selectedTab == 0) 1 else 0 }) {
+                        androidx.compose.material3.FilledTonalIconButton(onClick = { selectedTab = if (selectedTab == 0) 1 else 0 }, shape = RoundedCornerShape(12.dp)) {
                             Icon(
                                 imageVector = if (selectedTab == 0) Icons.Default.Preview else Icons.Default.Edit,
                                 contentDescription = if (selectedTab == 0) "Preview" else "Edit",
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+
+                    // Save note
+                    androidx.compose.material3.FilledTonalIconButton(
+                        onClick = {
+                            if (title.isNotBlank() || (contentValue.text.isNotBlank() && contentValue.text != "# ")) {
+                                viewModel.saveNote(title, contentValue.text, colorHex, topic, isPinned, showInWidget, navigateBack = false)
+                                Toast.makeText(context, Localization.getString("save", currentLanguage), Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Save,
+                            contentDescription = Localization.getString("save", currentLanguage),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
 
                     // Settings/More button
@@ -291,23 +332,6 @@ fun EditNoteScreen(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "More Settings",
                             tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    // Save note
-                    IconButton(
-                        onClick = { viewModel.saveNote(title, contentValue.text, colorHex, isPinned, showInWidget) },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = Localization.getString("save", currentLanguage),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -505,6 +529,24 @@ fun EditNoteScreen(
                 }
 
                 HorizontalDivider()
+                
+                // Topic Selection
+                Text("记事主题", style = MaterialTheme.typography.labelLarge)
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val predefinedTopics = listOf("工作/代码", "计划/待办", "购物", "灵感/点子", "情感/纪念日", "财务/理财", "学习", "默认")
+                    items(predefinedTopics) { t ->
+                        androidx.compose.material3.FilterChip(
+                            selected = topic == t,
+                            onClick = { topic = t },
+                            label = { Text(t) }
+                        )
+                    }
+                }
+
+                HorizontalDivider()
 
                 // Pin Note
                 Row(
@@ -649,7 +691,7 @@ fun EditNoteScreen(
                             .fillMaxWidth()
                             .clickable {
                                 showSettingsSheet = false
-                                viewModel.deleteNote()
+                                showDeleteConfirm = true
                             }
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically

@@ -129,13 +129,40 @@ fun MainScreen(
 
     var showWidgetSettings by remember { mutableStateOf(false) }
     var showLanguageMenu by remember { mutableStateOf(false) }
+    var noteToDelete by remember { mutableStateOf<com.example.data.Note?>(null) }
     val isDark = isSystemInDarkTheme()
+
+    if (noteToDelete != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { noteToDelete = null },
+            title = { Text(Localization.getString("delete", currentLanguage) ?: "删除记事") },
+            text = { Text("确定要删除这条记事吗？删除后将无法恢复。") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        viewModel.deleteNoteDirectly(noteToDelete!!)
+                        noteToDelete = null
+                    }
+                ) {
+                    Text(Localization.getString("delete", currentLanguage) ?: "删除", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { noteToDelete = null }
+                ) {
+                    Text(Localization.getString("cancel", currentLanguage) ?: "取消")
+                }
+            }
+        )
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.navigateToEditNote(null) },
+                shape = RoundedCornerShape(12.dp),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
@@ -197,7 +224,7 @@ fun MainScreen(
                             .size(48.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
-                                shape = CircleShape
+                                shape = RoundedCornerShape(12.dp)
                             )
                     ) {
                         Icon(
@@ -245,7 +272,7 @@ fun MainScreen(
                         .size(48.dp)
                         .background(
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                            shape = CircleShape
+                            shape = RoundedCornerShape(12.dp)
                         )
                 ) {
                     Icon(
@@ -335,7 +362,7 @@ fun MainScreen(
                                     isDark = isDark,
                                     onClick = { viewModel.navigateToEditNote(note.id) },
                                     onTogglePin = { viewModel.togglePin(note) },
-                                    onDelete = { viewModel.deleteNoteDirectly(note) },
+                                    onDelete = { noteToDelete = note },
                                     onUpdateNote = { viewModel.insertNote(it) },
                                     currentLanguage = currentLanguage,
                                     modifier = Modifier.animateItem()
@@ -348,7 +375,7 @@ fun MainScreen(
                                     isDark = isDark,
                                     onClick = { viewModel.navigateToEditNote(note.id) },
                                     onTogglePin = { viewModel.togglePin(note) },
-                                    onDelete = { viewModel.deleteNoteDirectly(note) },
+                                    onDelete = { noteToDelete = note },
                                     onUpdateNote = { viewModel.insertNote(it) },
                                     currentLanguage = currentLanguage,
                                     modifier = Modifier.animateItem()
@@ -375,7 +402,7 @@ fun MainScreen(
                                     isDark = isDark,
                                     onClick = { viewModel.navigateToEditNote(note.id) },
                                     onTogglePin = { viewModel.togglePin(note) },
-                                    onDelete = { viewModel.deleteNoteDirectly(note) },
+                                    onDelete = { noteToDelete = note },
                                     onUpdateNote = { viewModel.insertNote(it) },
                                     currentLanguage = currentLanguage,
                                     modifier = Modifier.animateItem()
@@ -401,7 +428,7 @@ fun MainScreen(
                                     isDark = isDark,
                                     onClick = { viewModel.navigateToEditNote(note.id) },
                                     onTogglePin = { viewModel.togglePin(note) },
-                                    onDelete = { viewModel.deleteNoteDirectly(note) },
+                                    onDelete = { noteToDelete = note },
                                     onUpdateNote = { viewModel.insertNote(it) },
                                     currentLanguage = currentLanguage,
                                     modifier = Modifier.animateItem()
@@ -515,7 +542,7 @@ fun NoteCard(
                             .size(28.dp)
                             .background(
                                 color = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.65f),
-                                shape = CircleShape
+                                shape = RoundedCornerShape(12.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -539,7 +566,7 @@ fun NoteCard(
 
                 IconButton(
                     onClick = onTogglePin,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = if (note.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
@@ -648,7 +675,7 @@ fun NoteCard(
 
                 IconButton(
                     onClick = onDelete,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.DeleteOutline,
@@ -670,18 +697,6 @@ fun NoteCard(
                         showMenu = false
                     }
                 )
-                // Common topics for quick selection
-                val predefinedTopics = listOf("工作/代码", "计划/待办", "购物", "灵感/点子", "情感/纪念日", "财务/理财", "学习", "默认")
-                androidx.compose.material3.HorizontalDivider()
-                predefinedTopics.forEach { topic ->
-                    androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("主题: $topic") },
-                        onClick = {
-                            onUpdateNote(note.copy(topic = topic))
-                            showMenu = false
-                        }
-                    )
-                }
             }
         }
     }

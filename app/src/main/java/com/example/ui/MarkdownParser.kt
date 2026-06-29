@@ -16,6 +16,10 @@ import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.ImagesPlugin
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import io.noties.markwon.AbstractMarkwonPlugin
+import io.noties.markwon.core.MarkwonTheme
+
 @Composable
 fun MarkdownContent(
     markdown: String,
@@ -24,14 +28,27 @@ fun MarkdownContent(
     val context = LocalContext.current
     val color = MaterialTheme.colorScheme.onSurface.toArgb()
     val linkColor = MaterialTheme.colorScheme.primary.toArgb()
+    val isDark = isSystemInDarkTheme()
     
-    val markwon = remember(context) {
+    val markwon = remember(context, isDark) {
         Markwon.builder(context)
             .usePlugin(TablePlugin.create(context))
             .usePlugin(StrikethroughPlugin.create())
             .usePlugin(TaskListPlugin.create(context))
             .usePlugin(HtmlPlugin.create())
             .usePlugin(ImagesPlugin.create())
+            .usePlugin(object : AbstractMarkwonPlugin() {
+                override fun configureTheme(builder: MarkwonTheme.Builder) {
+                    val codeBg = if (isDark) 0xFF2B2B2B.toInt() else 0xFFF5F5F5.toInt()
+                    val codeText = if (isDark) 0xFFE0E0E0.toInt() else 0xFF333333.toInt()
+                    builder
+                        .codeBackgroundColor(codeBg)
+                        .codeBlockBackgroundColor(codeBg)
+                        .codeTextColor(codeText)
+                        .codeBlockTextColor(codeText)
+                        .linkColor(linkColor)
+                }
+            })
             .build()
     }
     

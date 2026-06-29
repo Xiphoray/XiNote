@@ -96,6 +96,9 @@ markwon-strikethrough = { group = "io.noties.markwon", name = "ext-strikethrough
 markwon-tasklist = { group = "io.noties.markwon", name = "ext-tasklist", version.ref = "markwon" }
 markwon-html = { group = "io.noties.markwon", name = "html", version.ref = "markwon" }
 markwon-image = { group = "io.noties.markwon", name = "image", version.ref = "markwon" }
+markwon-syntax = { group = "io.noties.markwon", name = "syntax-highlight", version.ref = "markwon" }
+prism4j = { group = "io.noties", name = "prism4j", version = "2.0.0" }
+prism4j-bundler = { group = "io.noties", name = "prism4j-bundler", version = "2.0.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

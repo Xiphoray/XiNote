@@ -225,18 +225,24 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     }
 
     // Database updates
-    fun saveNote(title: String, content: String, colorHex: String?, isPinned: Boolean, showInWidget: Boolean) {
+    fun saveNote(title: String, content: String, colorHex: String?, topic: String, isPinned: Boolean, showInWidget: Boolean, navigateBack: Boolean = true) {
         val note = currentEditingNote.value ?: return
         viewModelScope.launch {
             val updatedNote = note.copy(
                 title = title,
                 content = content,
                 colorHex = colorHex,
+                topic = topic,
                 isPinned = isPinned,
                 showInWidget = showInWidget,
                 updatedAt = System.currentTimeMillis()
             )
-            repository.insert(updatedNote)
+            val newId = repository.insert(updatedNote).toInt()
+            
+            // If it was a new note, update currentEditingNote with the new ID to prevent creating duplicates
+            if (note.id == 0 && newId > 0) {
+                currentEditingNote.value = updatedNote.copy(id = newId)
+            }
             
             // Trigger automatic background backup to WebDAV if credentials are configured
             launch {
@@ -246,7 +252,9 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
                 }
             }
             
-            navigateToHome()
+            if (navigateBack) {
+                navigateToHome()
+            }
         }
     }
 

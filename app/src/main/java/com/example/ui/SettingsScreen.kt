@@ -126,10 +126,10 @@ fun SettingsScreen(
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {
+                androidx.compose.material3.FilledTonalIconButton(onClick = {
                     saveConfig()
                     viewModel.navigateToHome()
-                }) {
+                }, shape = RoundedCornerShape(12.dp)) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = Localization.getString("back", currentLanguage)

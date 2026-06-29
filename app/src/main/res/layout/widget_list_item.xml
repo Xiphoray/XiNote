@@ -19,7 +19,7 @@
         <ImageView
             android:id="@+id/note_color_bar"
             android:layout_width="4dp"
-            android:layout_height="36dp"
+            android:layout_height="match_parent"
             android:scaleType="fitXY"
             android:src="@drawable/widget_color_bar" />
 
@@ -38,7 +38,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="#1F1B1A"
-                android:textSize="16sp"
+                android:textSize="18sp"
                 android:fontFamily="serif"
                 android:textStyle="bold" />
 
@@ -50,7 +50,7 @@
                 android:ellipsize="end"
                 android:maxLines="4"
                 android:textColor="#4E4442"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:fontFamily="serif" />
         </LinearLayout>
     </LinearLayout>
@@ -58,9 +58,9 @@
     <FrameLayout
         android:id="@+id/item_divider"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
+        android:layout_height="2dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
         android:background="#E5DED8" />
 </LinearLayout>
 

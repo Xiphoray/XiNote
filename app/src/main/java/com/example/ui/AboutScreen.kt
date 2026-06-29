@@ -44,7 +44,7 @@ fun AboutScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.navigateToSettings() }) {
+                    androidx.compose.material3.FilledTonalIconButton(onClick = { viewModel.navigateToSettings() }, shape = RoundedCornerShape(12.dp)) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "返回"
