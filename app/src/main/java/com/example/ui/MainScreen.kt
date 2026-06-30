@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +45,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
@@ -116,6 +119,7 @@ val NOTE_COLORS = listOf(
     "slate" to "黛灰"
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(
     viewModel: NoteViewModel,
@@ -160,14 +164,42 @@ fun MainScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.navigateToEditNote(null) },
-                shape = RoundedCornerShape(12.dp),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-            ) {
-                Icon(Icons.Default.Add, contentDescription = Localization.getString("add_note", currentLanguage))
+            var showTemplateMenu by remember { mutableStateOf(false) }
+            val templates by viewModel.templates.collectAsState()
+            Box(modifier = Modifier.padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())) {
+                androidx.compose.material3.Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .combinedClickable(
+                                onClick = { viewModel.navigateToEditNote(null) },
+                                onLongClick = { showTemplateMenu = true }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = Localization.getString("add_note", currentLanguage))
+                    }
+                }
+                androidx.compose.material3.DropdownMenu(
+                    expanded = showTemplateMenu,
+                    onDismissRequest = { showTemplateMenu = false }
+                ) {
+                    templates.forEach { template ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(template.name) },
+                            onClick = {
+                                viewModel.navigateToEditNoteWithSharedText(template.content, context)
+                                showTemplateMenu = false
+                            }
+                        )
+                    }
+                }
             }
         }
     ) { innerPadding ->
@@ -238,19 +270,11 @@ fun MainScreen(
                         onDismissRequest = { showViewOptions = false }
                     ) {
                         val listLayout by viewModel.listLayout.collectAsState()
-                        val groupByTopic by viewModel.groupByTopic.collectAsState()
                         
                         androidx.compose.material3.DropdownMenuItem(
                             text = { Text(if (listLayout == 0) "当前: 一列" else "当前: 两列") },
                             onClick = {
                                 viewModel.setListLayout(context, (listLayout + 1) % 2)
-                            }
-                        )
-                        androidx.compose.material3.DropdownMenuItem(
-                            text = { Text(if (groupByTopic) "取消按主题分组" else "按主题分组") },
-                            onClick = {
-                                viewModel.setGroupByTopic(context, !groupByTopic)
-                                showViewOptions = false
                             }
                         )
                         androidx.compose.material3.DropdownMenuItem(
@@ -323,116 +347,92 @@ fun MainScreen(
                 }
             } else {
                 val listLayout by viewModel.listLayout.collectAsState()
-                val groupByTopic by viewModel.groupByTopic.collectAsState()
+                val collapsedTopics by viewModel.collapsedTopics.collectAsState()
                 val configuration = LocalConfiguration.current
                 val screenWidthDp = configuration.screenWidthDp
                 
                 val gridColumns = when (listLayout) {
-                    0 -> GridCells.Fixed(1)
-                    1 -> GridCells.Fixed(2)
-                    else -> GridCells.Fixed(2)
+                    0 -> StaggeredGridCells.Fixed(1)
+                    1 -> StaggeredGridCells.Fixed(2)
+                    else -> StaggeredGridCells.Fixed(2)
                 }
 
-                LazyVerticalGrid(
+                LazyVerticalStaggeredGrid(
                     columns = gridColumns,
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalItemSpacing = 12.dp,
                     modifier = Modifier.weight(1f)
                 ) {
-                    if (groupByTopic) {
-                        val groupedNotes = notes.groupBy { it.topic }.toSortedMap()
+                    val pinnedNotes = notes.filter { it.isPinned }
+                    val otherNotes = notes.filter { !it.isPinned }
+
+                    if (pinnedNotes.isNotEmpty()) {
+                        item(span = StaggeredGridItemSpan.FullLine) {
+                            Text(
+                                text = Localization.getString("pinned", currentLanguage),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
+                        items(pinnedNotes, key = { it.id }) { note ->
+                            NoteCard(
+                                note = note,
+                                isDark = isDark,
+                                onClick = { viewModel.navigateToEditNote(note.id) },
+                                onTogglePin = { viewModel.togglePin(note) },
+                                onDelete = { noteToDelete = note },
+                                onUpdateNote = { viewModel.insertNote(it) },
+                                currentLanguage = currentLanguage,
+                                modifier = Modifier.animateItem()
+                            )
+                        }
+                    }
+
+                    if (otherNotes.isNotEmpty()) {
+                        val groupedNotes = otherNotes.groupBy { it.topic }.toSortedMap()
                         groupedNotes.forEach { (topic, topicNotes) ->
-                            val pinnedNotes = topicNotes.filter { it.isPinned }
-                            val otherNotes = topicNotes.filter { !it.isPinned }
-                            
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Text(
-                                    text = "主题: $topic",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                                )
-                            }
-                            
-                            items(pinnedNotes, key = { it.id }) { note ->
-                                NoteCard(
-                                    note = note,
-                                    isDark = isDark,
-                                    onClick = { viewModel.navigateToEditNote(note.id) },
-                                    onTogglePin = { viewModel.togglePin(note) },
-                                    onDelete = { noteToDelete = note },
-                                    onUpdateNote = { viewModel.insertNote(it) },
-                                    currentLanguage = currentLanguage,
-                                    modifier = Modifier.animateItem()
-                                )
-                            }
-                            
-                            items(otherNotes, key = { it.id }) { note ->
-                                NoteCard(
-                                    note = note,
-                                    isDark = isDark,
-                                    onClick = { viewModel.navigateToEditNote(note.id) },
-                                    onTogglePin = { viewModel.togglePin(note) },
-                                    onDelete = { noteToDelete = note },
-                                    onUpdateNote = { viewModel.insertNote(it) },
-                                    currentLanguage = currentLanguage,
-                                    modifier = Modifier.animateItem()
-                                )
-                            }
-                        }
-                    } else {
-                        val pinnedNotes = notes.filter { it.isPinned }
-                        val otherNotes = notes.filter { !it.isPinned }
-
-                        if (pinnedNotes.isNotEmpty()) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Text(
-                                    text = Localization.getString("pinned", currentLanguage),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(bottom = 4.dp)
-                                )
-                            }
-                            items(pinnedNotes, key = { it.id }) { note ->
-                                NoteCard(
-                                    note = note,
-                                    isDark = isDark,
-                                    onClick = { viewModel.navigateToEditNote(note.id) },
-                                    onTogglePin = { viewModel.togglePin(note) },
-                                    onDelete = { noteToDelete = note },
-                                    onUpdateNote = { viewModel.insertNote(it) },
-                                    currentLanguage = currentLanguage,
-                                    modifier = Modifier.animateItem()
-                                )
-                            }
-                        }
-
-                        if (otherNotes.isNotEmpty()) {
-                            if (pinnedNotes.isNotEmpty()) {
-                                item(span = { GridItemSpan(maxLineSpan) }) {
+                            item(span = StaggeredGridItemSpan.FullLine) {
+                                val isCollapsed = collapsedTopics.contains(topic)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { 
+                                            viewModel.toggleCollapsedTopic(context, topic)
+                                        }
+                                        .padding(top = 12.dp, bottom = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Text(
-                                        text = Localization.getString("others", currentLanguage),
-                                        style = MaterialTheme.typography.titleSmall,
+                                        text = topic,
+                                        style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Icon(
+                                        imageVector = if (isCollapsed) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                                        contentDescription = "Collapse",
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
-                            items(otherNotes, key = { it.id }) { note ->
-                                NoteCard(
-                                    note = note,
-                                    isDark = isDark,
-                                    onClick = { viewModel.navigateToEditNote(note.id) },
-                                    onTogglePin = { viewModel.togglePin(note) },
-                                    onDelete = { noteToDelete = note },
-                                    onUpdateNote = { viewModel.insertNote(it) },
-                                    currentLanguage = currentLanguage,
-                                    modifier = Modifier.animateItem()
-                                )
+                            
+                            if (!collapsedTopics.contains(topic)) {
+                                items(topicNotes, key = { it.id }) { note ->
+                                    NoteCard(
+                                        note = note,
+                                        isDark = isDark,
+                                        onClick = { viewModel.navigateToEditNote(note.id) },
+                                        onTogglePin = { viewModel.togglePin(note) },
+                                        onDelete = { noteToDelete = note },
+                                        onUpdateNote = { viewModel.insertNote(it) },
+                                        currentLanguage = currentLanguage,
+                                        modifier = Modifier.animateItem()
+                                    )
+                                }
                             }
                         }
                     }
@@ -548,7 +548,7 @@ fun NoteCard(
                     ) {
                         Text(
                             text = categoryEmoji,
-                            fontSize = 15.sp
+                            fontSize = 14.sp
                         )
                     }
                     
@@ -556,23 +556,11 @@ fun NoteCard(
 
                     Text(
                         text = note.title.ifBlank { Localization.getString("untitled", currentLanguage) },
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                IconButton(
-                    onClick = onTogglePin,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = if (note.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                        contentDescription = Localization.getString(if (note.isPinned) "unpin" else "pin", currentLanguage),
-                        tint = if (note.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -581,12 +569,7 @@ fun NoteCard(
 
             // Body preview: strip heading symbols and display a clean snippet
             val previewText = remember(note.content) {
-                note.content
-                    .replace(Regex("(?m)^#+\\s+"), "")
-                    .replace(Regex("\\*\\*(.*?)\\*\\*"), "$1")
-                    .replace(Regex("\\*(.*?)\\*"), "$1")
-                    .replace(Regex("`"), "")
-                    .trim()
+                stripMarkdown(note.content)
             }
 
             Text(
@@ -594,7 +577,7 @@ fun NoteCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
                 lineHeight = 19.sp,
-                maxLines = 3,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -673,16 +656,29 @@ fun NoteCard(
                     )
                 }
 
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteOutline,
-                        contentDescription = Localization.getString("delete", currentLanguage),
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
-                        modifier = Modifier.size(16.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onTogglePin,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (note.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                            contentDescription = Localization.getString(if (note.isPinned) "unpin" else "pin", currentLanguage),
+                            tint = if (note.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = Localization.getString("delete", currentLanguage),
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
             

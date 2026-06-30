@@ -17,6 +17,7 @@ sealed interface Screen {
     object Home : Screen
     object Settings : Screen
     object About : Screen
+    object ManageTemplates : Screen
     data class EditNote(val noteId: Int?) : Screen
 }
 
@@ -66,15 +67,17 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     val currentTheme = MutableStateFlow("system")
 
     val listLayout = MutableStateFlow(1) // 0: 1 col, 1: 2 col, 2: staggered
-    val groupByTopic = MutableStateFlow(false)
+    val collapsedTopics = MutableStateFlow<Set<String>>(emptySet())
 
     fun loadPreferences(context: Context) {
         loadWidgetOpacity(context)
         loadLanguage(context)
         loadTheme(context)
+        loadTemplates(context)
         val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
         listLayout.value = sp.getInt("list_layout", 1)
-        groupByTopic.value = sp.getBoolean("group_by_topic", false)
+        val savedCollapsed = sp.getStringSet("collapsed_topics", emptySet())
+        collapsedTopics.value = savedCollapsed ?: emptySet()
     }
 
     fun setListLayout(context: Context, layout: Int) {
@@ -83,10 +86,16 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         sp.edit().putInt("list_layout", layout).apply()
     }
 
-    fun setGroupByTopic(context: Context, group: Boolean) {
-        groupByTopic.value = group
+    fun toggleCollapsedTopic(context: Context, topic: String) {
+        val current = collapsedTopics.value.toMutableSet()
+        if (current.contains(topic)) {
+            current.remove(topic)
+        } else {
+            current.add(topic)
+        }
+        collapsedTopics.value = current
         val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
-        sp.edit().putBoolean("group_by_topic", group).apply()
+        sp.edit().putStringSet("collapsed_topics", current).apply()
     }
 
     fun insertNote(note: Note) {
@@ -172,6 +181,47 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     // WebDAV backup config and operations
     fun getWebDavConfig() = repository.backupManager.getWebDavConfig()
 
+    data class NoteTemplate(val name: String, val content: String)
+    
+    private val _templates = MutableStateFlow<List<NoteTemplate>>(emptyList())
+    val templates: StateFlow<List<NoteTemplate>> = _templates
+
+    fun loadTemplates(context: Context) {
+        val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
+        val defaultTemplates = listOf(
+            NoteTemplate("日记", "# 日记\n\n日期: \n\n天气: \n\n## 今日感悟\n\n"),
+            NoteTemplate("会议记录", "# 会议记录\n\n主题: \n\n参会人: \n\n## 会议纪要\n\n- \n\n## 待办事项\n\n- [ ] "),
+            NoteTemplate("购物清单", "# 购物清单\n\n## 超市\n- [ ] \n- [ ] \n\n## 网购\n- [ ] "),
+            NoteTemplate("待办清单", "# 待办清单\n\n## 今日任务\n- [ ] \n- [ ] \n\n## 明日计划\n- [ ] "),
+            NoteTemplate("读书笔记", "# 读书笔记\n\n书名: \n\n## 摘抄\n>\n\n## 读后感\n"),
+            NoteTemplate("周报汇报", "# 周报\n\n## 本周工作完成情况\n- \n\n## 下周工作计划\n- \n\n## 需要协调的资源\n- "),
+            NoteTemplate("旅行计划", "# 旅行计划\n\n目的地: \n\n## 行程安排\n- Day 1: \n- Day 2: \n\n## 必带物品\n- [ ] 身份证\n- [ ] 充电宝\n")
+        )
+        val saved = sp.getString("note_templates", null)
+        if (saved != null) {
+            val list = mutableListOf<NoteTemplate>()
+            saved.split("|||").forEach {
+                val parts = it.split("===")
+                if (parts.size == 2) {
+                    list.add(NoteTemplate(parts[0], parts[1]))
+                }
+            }
+            if (list.isNotEmpty()) {
+                _templates.value = list
+                return
+            }
+        }
+        _templates.value = defaultTemplates
+    }
+
+    fun saveTemplates(context: Context, newTemplates: List<NoteTemplate>) {
+        _templates.value = newTemplates
+        val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
+        val serialized = newTemplates.joinToString("|||") { "${it.name}===${it.content}" }
+        sp.edit().putString("note_templates", serialized).apply()
+    }
+
+
     fun saveWebDavConfig(config: com.example.data.WebDavConfig) {
         repository.backupManager.saveWebDavConfig(config)
     }
@@ -202,6 +252,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     fun navigateToAbout() {
         currentScreen.value = Screen.About
     }
+    
+    fun navigateToManageTemplates() {
+        currentScreen.value = Screen.ManageTemplates
+    }
 
     fun navigateToEditNote(noteId: Int?, context: Context? = null) {
         viewModelScope.launch {
@@ -217,10 +271,20 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
                 // Initialize clean default note with an optional template or blank
                 currentEditingNote.value = Note(
                     title = "",
-                    content = "# "
+                    content = ""
                 )
                 currentScreen.value = Screen.EditNote(null)
             }
+        }
+    }
+
+    fun navigateToEditNoteWithSharedText(text: String, context: Context? = null) {
+        viewModelScope.launch {
+            currentEditingNote.value = Note(
+                title = "",
+                content = text
+            )
+            currentScreen.value = Screen.EditNote(null)
         }
     }
 
@@ -239,10 +303,9 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
             )
             val newId = repository.insert(updatedNote).toInt()
             
-            // If it was a new note, update currentEditingNote with the new ID to prevent creating duplicates
-            if (note.id == 0 && newId > 0) {
-                currentEditingNote.value = updatedNote.copy(id = newId)
-            }
+            // Update currentEditingNote so we know it's saved
+            val finalId = if (note.id == 0 && newId > 0) newId else note.id
+            currentEditingNote.value = updatedNote.copy(id = finalId)
             
             // Trigger automatic background backup to WebDAV if credentials are configured
             launch {

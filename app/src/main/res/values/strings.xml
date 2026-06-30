@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">XiNote</string>
+    <string name="new_note_shortcut">新建记事</string>
 </resources>

@@ -41,8 +41,8 @@ class MainActivity : ComponentActivity() {
         // 3. Load SharedPreferences widget configurations, theme, and language on start
         viewModel.loadPreferences(applicationContext)
 
-        // 4. Handle deep link intent from widget
-        handleWidgetIntent(intent)
+        // 4. Handle deep link intent from widget and sharing
+        handleIntent(intent)
 
         setContent {
             val appTheme by viewModel.currentTheme.collectAsState()
@@ -99,6 +99,9 @@ class MainActivity : ComponentActivity() {
                             is Screen.About -> {
                                 com.example.ui.AboutScreen(viewModel = viewModel)
                             }
+                            is Screen.ManageTemplates -> {
+                                com.example.ui.ManageTemplatesScreen(viewModel = viewModel)
+                            }
                             is Screen.EditNote -> {
                                 EditNoteScreen(viewModel = viewModel)
                             }
@@ -112,7 +115,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleWidgetIntent(intent)
+        handleIntent(intent)
     }
 
     override fun onResume() {
@@ -122,9 +125,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Parses widget click action intents and navigates directly to edit/create screens
-    private fun handleWidgetIntent(intent: Intent?) {
+    // Parses widget click action intents and sharing intents to navigate appropriately
+    private fun handleIntent(intent: Intent?) {
         if (intent == null) return
+        
+        // Handle Sharing Text
+        if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+            if (sharedText != null) {
+                viewModel.navigateToEditNoteWithSharedText(sharedText, applicationContext)
+            }
+            return
+        }
+        
         val action = intent.getStringExtra("action") ?: intent.action
         when (action) {
             "ADD_NOTE" -> {

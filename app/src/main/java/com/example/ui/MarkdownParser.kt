@@ -20,6 +20,18 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.core.MarkwonTheme
 
+fun stripMarkdown(markdown: String): String {
+    var text = markdown
+    text = text.replace(Regex("(?m)^#{1,6}\\s+"), "") // Remove headers
+    text = text.replace(Regex("\\*\\*(.*?)\\*\\*"), "$1") // Remove bold
+    text = text.replace(Regex("\\*(.*?)\\*"), "$1") // Remove italic
+    text = text.replace(Regex("`(.*?)`"), "$1") // Remove code
+    text = text.replace(Regex("\\[(.*?)\\]\\(.*?\\)"), "$1") // Remove links
+    text = text.replace(Regex("(?m)^\\s*[-*+]\\s+"), "") // Remove list items
+    text = text.replace(Regex("(?m)^>\\s+"), "") // Remove blockquotes
+    return text.trim()
+}
+
 @Composable
 fun MarkdownContent(
     markdown: String,

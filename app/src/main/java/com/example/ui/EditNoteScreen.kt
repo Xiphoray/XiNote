@@ -209,8 +209,53 @@ fun EditNoteScreen(
         }
     }
 
+    var showUnsavedDialog by remember { mutableStateOf(false) }
+
+    val hasUnsavedChanges = remember(title, contentValue.text, colorHex, topic, isPinned, showInWidget, note) {
+        val originalNote = note
+        if (originalNote == null || originalNote.id == 0) {
+            title.isNotEmpty() || contentValue.text.isNotEmpty()
+        } else {
+            title != originalNote.title ||
+            contentValue.text != originalNote.content ||
+            colorHex != originalNote.colorHex ||
+            topic != originalNote.topic ||
+            isPinned != originalNote.isPinned ||
+            showInWidget != originalNote.showInWidget
+        }
+    }
+
+    val handleBack = {
+        if (hasUnsavedChanges) {
+            showUnsavedDialog = true
+        } else {
+            viewModel.navigateToHome()
+        }
+    }
+
     BackHandler {
-        viewModel.navigateToHome()
+        handleBack()
+    }
+
+    if (showUnsavedDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showUnsavedDialog = false },
+            title = { Text(Localization.getString("unsaved_changes", currentLanguage) ?: "未保存的更改") },
+            text = { Text("你有未保存的内容，确定要离开吗？") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showUnsavedDialog = false
+                    viewModel.navigateToHome()
+                }) {
+                    Text(Localization.getString("leave", currentLanguage) ?: "离开", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showUnsavedDialog = false }) {
+                    Text(Localization.getString("cancel", currentLanguage) ?: "取消")
+                }
+            }
+        )
     }
 
     val isDark = isSystemInDarkTheme()
@@ -272,7 +317,7 @@ fun EditNoteScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { viewModel.navigateToHome() }) {
+                    IconButton(onClick = { handleBack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = Localization.getString("back", currentLanguage))
                     }
                     Text(
@@ -310,20 +355,32 @@ fun EditNoteScreen(
                     }
 
                     // Save note
-                    androidx.compose.material3.FilledTonalIconButton(
-                        onClick = {
-                            if (title.isNotBlank() || (contentValue.text.isNotBlank() && contentValue.text != "# ")) {
-                                viewModel.saveNote(title, contentValue.text, colorHex, topic, isPinned, showInWidget, navigateBack = false)
-                                Toast.makeText(context, Localization.getString("save", currentLanguage), Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp)
+                    val canSave = hasUnsavedChanges && (title.isNotBlank() || contentValue.text.isNotBlank())
+                    androidx.compose.material3.Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (canSave) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .then(
+                                if (canSave) {
+                                    Modifier.clickable(
+                                        onClick = {
+                                            viewModel.saveNote(title, contentValue.text, colorHex, topic, isPinned, showInWidget, navigateBack = false)
+                                            Toast.makeText(context, Localization.getString("save", currentLanguage), Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            )
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Save,
-                            contentDescription = Localization.getString("save", currentLanguage),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (canSave) Icons.Default.Save else Icons.Default.Check,
+                                contentDescription = Localization.getString("save", currentLanguage),
+                                tint = if (canSave) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            )
+                        }
                     }
 
                     // Settings/More button
@@ -809,6 +866,7 @@ fun EditorCardLayout(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
+                visualTransformation = MarkdownVisualTransformation(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
@@ -978,5 +1036,66 @@ private fun generateNoteImage(context: android.content.Context, title: String, c
     } catch (e: Exception) {
         e.printStackTrace()
         return null
+    }
+}
+
+class MarkdownVisualTransformation : androidx.compose.ui.text.input.VisualTransformation {
+    override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
+        val annotatedString = androidx.compose.ui.text.buildAnnotatedString {
+            append(text.text)
+            
+            // Highlight Headings
+            val headingRegex = Regex("(?m)^#{1,6}\\s+.*$")
+            headingRegex.findAll(text.text).forEach { match ->
+                addStyle(
+                    style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF6200EA), fontSize = 18.sp),
+                    start = match.range.first,
+                    end = match.range.last + 1
+                )
+            }
+            
+            // Highlight Bold
+            val boldRegex = Regex("\\*\\*(.*?)\\*\\*")
+            boldRegex.findAll(text.text).forEach { match ->
+                addStyle(
+                    style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold),
+                    start = match.range.first,
+                    end = match.range.last + 1
+                )
+            }
+            
+            // Highlight Italic
+            val italicRegex = Regex("\\*(.*?)\\*")
+            italicRegex.findAll(text.text).forEach { match ->
+                if (!match.value.startsWith("**")) {
+                    addStyle(
+                        style = androidx.compose.ui.text.SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                        start = match.range.first,
+                        end = match.range.last + 1
+                    )
+                }
+            }
+            
+            // Highlight Code Span
+            val codeRegex = Regex("`(.*?)`")
+            codeRegex.findAll(text.text).forEach { match ->
+                addStyle(
+                    style = androidx.compose.ui.text.SpanStyle(background = Color.Gray.copy(alpha = 0.2f), fontFamily = FontFamily.Monospace),
+                    start = match.range.first,
+                    end = match.range.last + 1
+                )
+            }
+            
+            // Highlight Blockquote
+            val quoteRegex = Regex("(?m)^>.*$")
+            quoteRegex.findAll(text.text).forEach { match ->
+                addStyle(
+                    style = androidx.compose.ui.text.SpanStyle(color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                    start = match.range.first,
+                    end = match.range.last + 1
+                )
+            }
+        }
+        return androidx.compose.ui.text.input.TransformedText(annotatedString, androidx.compose.ui.text.input.OffsetMapping.Identity)
     }
 }

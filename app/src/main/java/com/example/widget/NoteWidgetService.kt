@@ -95,15 +95,7 @@ class NoteWidgetFactory(private val context: Context) : RemoteViewsService.Remot
     }
 
     private fun cleanMarkdownForWidget(markdown: String): String {
-        var clean = markdown
-            .replace(Regex("(?m)^#+\\\\s+"), "")
-            .replace(Regex("\\\\*\\\\*(.*?)\\\\*\\\\*"), "$1")
-            .replace(Regex("\\\\*(.*?)\\\\*"), "$1")
-            .replace(Regex("`(.*?)`"), "$1")
-            .replace(Regex("(?m)^>\\\\s+"), "")
-            .replace(Regex("(?m)^-\\\\s+"), "")
-            .replace(Regex("(?m)^\\\\*\\\\s+"), "")
-            .trim()
+        var clean = com.example.ui.stripMarkdown(markdown)
         if (clean.length > 250) {
             clean = clean.substring(0, 247) + "..."
         }
