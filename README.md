@@ -75,7 +75,7 @@
 
 1. 克隆代码库：
    ```bash
-   git clone https://github.com/yourusername/xinote.git
+   git clone https://github.com/xiphoray/xinote.git
    ```
 2. 使用 **Android Studio** 打开该项目。
 3. 同步 Gradle 文件。
@@ -154,7 +154,7 @@ To build and run this app locally:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/xinote.git
+   git clone https://github.com/xiphoray/xinote.git
    ```
 2. Open the project in **Android Studio**.
 3. Sync the Gradle files.

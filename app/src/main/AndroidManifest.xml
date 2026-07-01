@@ -25,6 +25,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Add Note intent filter -->
+            <intent-filter>
+                <action android:name="ADD_NOTE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            
             <!-- Share Target intent filter -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

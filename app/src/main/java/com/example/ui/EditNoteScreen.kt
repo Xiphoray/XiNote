@@ -198,14 +198,14 @@ fun EditNoteScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            val imageFile = generateNoteImage(context, title, contentValue.text, colorHex)
+            val imageFile = generateNoteImage(context, title, contentValue.text, colorHex, currentLanguage)
             if (imageFile != null && imageFile.exists()) {
-                saveImageToGallery(context, imageFile)
+                saveImageToGallery(context, imageFile, currentLanguage)
             } else {
-                Toast.makeText(context, "生成图片失败", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, Localization.getString("edit_note_image_fail", currentLanguage) ?: "生成图片失败", Toast.LENGTH_SHORT).show()
             }
         } else {
-            Toast.makeText(context, "需要存储权限以保存图片", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, Localization.getString("storage_permission_denied", currentLanguage) ?: "需要存储权限以保存图片", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -240,19 +240,19 @@ fun EditNoteScreen(
     if (showUnsavedDialog) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showUnsavedDialog = false },
-            title = { Text(Localization.getString("unsaved_changes", currentLanguage) ?: "未保存的更改") },
-            text = { Text("你有未保存的内容，确定要离开吗？") },
+            title = { Text(Localization.getString("unsaved_changes_title", currentLanguage)) },
+            text = { Text(Localization.getString("unsaved_changes_desc", currentLanguage)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     showUnsavedDialog = false
                     viewModel.navigateToHome()
                 }) {
-                    Text(Localization.getString("leave", currentLanguage) ?: "离开", color = MaterialTheme.colorScheme.error)
+                    Text(Localization.getString("leave", currentLanguage), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showUnsavedDialog = false }) {
-                    Text(Localization.getString("cancel", currentLanguage) ?: "取消")
+                    Text(Localization.getString("cancel", currentLanguage))
                 }
             }
         )
@@ -356,31 +356,24 @@ fun EditNoteScreen(
 
                     // Save note
                     val canSave = hasUnsavedChanges && (title.isNotBlank() || contentValue.text.isNotBlank())
-                    androidx.compose.material3.Surface(
+                    androidx.compose.material3.FilledTonalIconButton(
+                        onClick = {
+                            viewModel.saveNote(title, contentValue.text, colorHex, topic, isPinned, showInWidget, navigateBack = false)
+                            Toast.makeText(context, Localization.getString("save", currentLanguage), Toast.LENGTH_SHORT).show()
+                        },
+                        enabled = canSave,
                         shape = RoundedCornerShape(12.dp),
-                        color = if (canSave) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier
-                            .size(48.dp)
-                            .then(
-                                if (canSave) {
-                                    Modifier.clickable(
-                                        onClick = {
-                                            viewModel.saveNote(title, contentValue.text, colorHex, topic, isPinned, showInWidget, navigateBack = false)
-                                            Toast.makeText(context, Localization.getString("save", currentLanguage), Toast.LENGTH_SHORT).show()
-                                        }
-                                    )
-                                } else {
-                                    Modifier
-                                }
-                            )
+                        colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.primary,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (canSave) Icons.Default.Save else Icons.Default.Check,
-                                contentDescription = Localization.getString("save", currentLanguage),
-                                tint = if (canSave) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                            )
-                        }
+                        Icon(
+                            imageVector = if (canSave) Icons.Default.Save else Icons.Default.Check,
+                            contentDescription = Localization.getString("save", currentLanguage)
+                        )
                     }
 
                     // Settings/More button
@@ -548,10 +541,10 @@ fun EditNoteScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("记事设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(Localization.getString("edit_note_settings_title", currentLanguage) ?: "记事设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
                 // Color Selection
-                Text("记事颜色", style = MaterialTheme.typography.labelLarge)
+                Text(Localization.getString("edit_note_color_title", currentLanguage) ?: "记事颜色", style = MaterialTheme.typography.labelLarge)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -588,17 +581,26 @@ fun EditNoteScreen(
                 HorizontalDivider()
                 
                 // Topic Selection
-                Text("记事主题", style = MaterialTheme.typography.labelLarge)
+                Text(Localization.getString("note_topic", currentLanguage), style = MaterialTheme.typography.labelLarge)
                 androidx.compose.foundation.lazy.LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val predefinedTopics = listOf("工作/代码", "计划/待办", "购物", "灵感/点子", "情感/纪念日", "财务/理财", "学习", "默认")
+                    val predefinedTopics = listOf(
+                        Localization.getString("topic_work", currentLanguage) ?: "工作/代码",
+                        Localization.getString("topic_plan", currentLanguage) ?: "计划/待办",
+                        Localization.getString("topic_shopping", currentLanguage) ?: "购物",
+                        Localization.getString("topic_idea", currentLanguage) ?: "灵感/点子",
+                        Localization.getString("topic_love", currentLanguage) ?: "情感/纪念日",
+                        Localization.getString("topic_finance", currentLanguage) ?: "财务/理财",
+                        Localization.getString("topic_study", currentLanguage) ?: "学习",
+                        Localization.getString("topic_default", currentLanguage) ?: "默认"
+                    )
                     items(predefinedTopics) { t ->
                         androidx.compose.material3.FilterChip(
                             selected = topic == t,
                             onClick = { topic = t },
-                            label = { Text(t) }
+                            label = { Text(Localization.getTopicName(t, currentLanguage)) }
                         )
                     }
                 }
@@ -617,7 +619,7 @@ fun EditNoteScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.PushPin, contentDescription = null, tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text("置顶记事")
+                        Text(Localization.getString("edit_note_pin_title", currentLanguage) ?: "置顶记事")
                     }
                     androidx.compose.material3.Switch(checked = isPinned, onCheckedChange = { isPinned = it })
                 }
@@ -634,7 +636,7 @@ fun EditNoteScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Preview, contentDescription = null, tint = if (showInWidget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text("在小组件中显示")
+                        Text(Localization.getString("edit_note_widget_title", currentLanguage) ?: "在小组件中显示")
                     }
                     androidx.compose.material3.Switch(checked = showInWidget, onCheckedChange = { showInWidget = it })
                 }
@@ -642,7 +644,7 @@ fun EditNoteScreen(
                 HorizontalDivider()
 
                 // Share options
-                Text("分享", style = MaterialTheme.typography.labelLarge)
+                Text(Localization.getString("edit_note_share_title", currentLanguage) ?: "分享", style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         IconButton(onClick = {
@@ -654,15 +656,15 @@ fun EditNoteScreen(
                             context.startActivity(android.content.Intent.createChooser(sendIntent, null))
                             showSettingsSheet = false
                         }) {
-                            Icon(androidx.compose.material.icons.Icons.Default.Share, contentDescription = "文本")
+                            Icon(androidx.compose.material.icons.Icons.Default.Share, contentDescription = Localization.getString("edit_note_share_text", currentLanguage))
                         }
-                        Text("分享文本", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(Localization.getString("edit_note_share_text", currentLanguage) ?: "分享文本", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     // Share as Image (generates a beautiful styled PNG image)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         IconButton(onClick = {
                             try {
-                                val imageFile = generateNoteImage(context, title, contentValue.text, colorHex)
+                                val imageFile = generateNoteImage(context, title, contentValue.text, colorHex, currentLanguage)
                                 if (imageFile != null && imageFile.exists()) {
                                     val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", imageFile)
                                     val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
@@ -670,37 +672,37 @@ fun EditNoteScreen(
                                         putExtra(android.content.Intent.EXTRA_STREAM, uri)
                                         addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(android.content.Intent.createChooser(sendIntent, "分享为图片"))
+                                    context.startActivity(android.content.Intent.createChooser(sendIntent, Localization.getString("edit_note_share_image", currentLanguage)))
                                 } else {
-                                    android.widget.Toast.makeText(context, "生成图片失败", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, Localization.getString("edit_note_image_fail", currentLanguage) ?: "生成图片失败", android.widget.Toast.LENGTH_SHORT).show()
                                 }
                             } catch (e: Exception) {
                                 e.printStackTrace()
-                                android.widget.Toast.makeText(context, "分享失败", android.widget.Toast.LENGTH_SHORT).show()
+                                android.widget.Toast.makeText(context, Localization.getString("edit_note_share_fail", currentLanguage) ?: "分享失败", android.widget.Toast.LENGTH_SHORT).show()
                             }
                             showSettingsSheet = false
                         }) {
-                            Icon(androidx.compose.material.icons.Icons.Default.Image, contentDescription = "图片")
+                            Icon(androidx.compose.material.icons.Icons.Default.Image, contentDescription = Localization.getString("edit_note_share_image", currentLanguage))
                         }
-                        Text("分享图片", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(Localization.getString("edit_note_share_image", currentLanguage) ?: "分享图片", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     // Save Image
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         IconButton(onClick = {
                             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                                val imageFile = generateNoteImage(context, title, contentValue.text, colorHex)
+                                val imageFile = generateNoteImage(context, title, contentValue.text, colorHex, currentLanguage)
                                 if (imageFile != null && imageFile.exists()) {
-                                    saveImageToGallery(context, imageFile)
+                                    saveImageToGallery(context, imageFile, currentLanguage)
                                 } else {
-                                    android.widget.Toast.makeText(context, "生成图片失败", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, Localization.getString("edit_note_image_fail", currentLanguage) ?: "生成图片失败", android.widget.Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                                    val imageFile = generateNoteImage(context, title, contentValue.text, colorHex)
+                                    val imageFile = generateNoteImage(context, title, contentValue.text, colorHex, currentLanguage)
                                     if (imageFile != null && imageFile.exists()) {
-                                        saveImageToGallery(context, imageFile)
+                                        saveImageToGallery(context, imageFile, currentLanguage)
                                     } else {
-                                        android.widget.Toast.makeText(context, "生成图片失败", android.widget.Toast.LENGTH_SHORT).show()
+                                        android.widget.Toast.makeText(context, Localization.getString("edit_note_image_fail", currentLanguage) ?: "生成图片失败", android.widget.Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
                                     permissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -708,9 +710,9 @@ fun EditNoteScreen(
                             }
                             showSettingsSheet = false
                         }) {
-                            Icon(androidx.compose.material.icons.Icons.Default.SaveAlt, contentDescription = "保存图片")
+                            Icon(androidx.compose.material.icons.Icons.Default.SaveAlt, contentDescription = Localization.getString("edit_note_save_image", currentLanguage))
                         }
-                        Text("保存图片", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(Localization.getString("edit_note_save_image", currentLanguage) ?: "保存图片", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     // Share as Word
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -726,16 +728,16 @@ fun EditNoteScreen(
                                     putExtra(android.content.Intent.EXTRA_STREAM, uri)
                                     addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
-                                context.startActivity(android.content.Intent.createChooser(sendIntent, "分享为Word"))
+                                context.startActivity(android.content.Intent.createChooser(sendIntent, Localization.getString("edit_note_export_word", currentLanguage)))
                             } catch (e: Exception) {
                                 e.printStackTrace()
-                                android.widget.Toast.makeText(context, "分享失败", android.widget.Toast.LENGTH_SHORT).show()
+                                android.widget.Toast.makeText(context, Localization.getString("edit_note_share_fail", currentLanguage) ?: "分享失败", android.widget.Toast.LENGTH_SHORT).show()
                             }
                             showSettingsSheet = false
                         }) {
-                            Icon(androidx.compose.material.icons.Icons.Default.Description, contentDescription = "Word")
+                            Icon(androidx.compose.material.icons.Icons.Default.Description, contentDescription = Localization.getString("edit_note_export_word", currentLanguage))
                         }
-                        Text("导出Word", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(Localization.getString("edit_note_export_word", currentLanguage) ?: "导出Word", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -755,7 +757,7 @@ fun EditNoteScreen(
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text("删除记事", color = MaterialTheme.colorScheme.error)
+                        Text(Localization.getString("delete", currentLanguage) ?: "删除记事", color = MaterialTheme.colorScheme.error)
                     }
                 }
                 
@@ -887,7 +889,7 @@ fun borderFromColor(bg: Color): androidx.compose.foundation.BorderStroke? {
     )
 }
 
-private fun saveImageToGallery(context: android.content.Context, imageFile: java.io.File) {
+private fun saveImageToGallery(context: android.content.Context, imageFile: java.io.File, currentLanguage: AppLanguage) {
     try {
         val values = android.content.ContentValues().apply {
             put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "Note_${System.currentTimeMillis()}.png")
@@ -910,17 +912,18 @@ private fun saveImageToGallery(context: android.content.Context, imageFile: java
                 values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
                 context.contentResolver.update(uri, values, null, null)
             }
-            android.widget.Toast.makeText(context, "图片已保存至相册", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context, Localization.getString("edit_note_image_saved", currentLanguage) ?: "图片已保存至相册", android.widget.Toast.LENGTH_SHORT).show()
         } else {
-            android.widget.Toast.makeText(context, "保存失败", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context, Localization.getString("edit_note_save_fail", currentLanguage) ?: "保存失败", android.widget.Toast.LENGTH_SHORT).show()
         }
     } catch (e: Exception) {
         e.printStackTrace()
-        android.widget.Toast.makeText(context, "保存出错: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        val errorMsg = Localization.getString("edit_note_save_error", currentLanguage) ?: "保存出错: %s"
+        android.widget.Toast.makeText(context, String.format(errorMsg, e.message), android.widget.Toast.LENGTH_SHORT).show()
     }
 }
 
-private fun generateNoteImage(context: android.content.Context, title: String, content: String, colorHex: String): java.io.File? {
+private fun generateNoteImage(context: android.content.Context, title: String, content: String, colorHex: String, currentLanguage: AppLanguage): java.io.File? {
     try {
         val width = 1080
         
@@ -965,7 +968,7 @@ private fun generateNoteImage(context: android.content.Context, title: String, c
             return lines
         }
         
-        val titleLines = wrapText(title.ifBlank { "无标题" }, titlePaint, textWidth)
+        val titleLines = wrapText(title.ifBlank { Localization.getString("untitled", currentLanguage) ?: "无标题" }, titlePaint, textWidth)
         val contentLines = wrapText(cleanContent, contentPaint, textWidth)
         
         val lineSpacing = 16f

@@ -38,7 +38,7 @@ fun AboutScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "关于 & 使用指南",
+                        text = Localization.getString("about_title", currentLanguage) ?: "关于 & 使用指南",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -47,7 +47,7 @@ fun AboutScreen(
                     androidx.compose.material3.FilledTonalIconButton(onClick = { viewModel.navigateToSettings() }, shape = RoundedCornerShape(12.dp)) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = Localization.getString("back", currentLanguage)
                         )
                     }
                 },
@@ -87,7 +87,7 @@ fun AboutScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "墨韵记事 (XiNote)",
+                            text = Localization.getString("app_title", currentLanguage) ?: "XiNote",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -95,7 +95,7 @@ fun AboutScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "一款融入中华古典美学设计的现代化 Markdown 记事工具。支持 Android 原生动态取色 (Material You) 方案，配合精心调校的卡片布局、置顶功能以及桌面小组件，为您带来雅致而高效的记录体验。",
+                        text = Localization.getString("about_app_desc", currentLanguage) ?: "一款基于 Jetpack Compose 构建的现代极简 Markdown 记事本，提供优雅的瀑布流视图、智能主题分类、快捷丰富的桌面组件，为您打造最纯粹、高效的灵感记录体验。",
                         style = MaterialTheme.typography.bodyMedium,
                         lineHeight = 22.sp
                     )
@@ -104,7 +104,7 @@ fun AboutScreen(
 
             // Usages list
             Text(
-                text = "💡 核心功能与用法介绍",
+                text = Localization.getString("about_features_title", currentLanguage) ?: "💡 核心功能速览",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 8.dp)
@@ -112,32 +112,32 @@ fun AboutScreen(
 
             // Usage 1: Editor & Preview
             AboutSection(
-                title = "1. Markdown 快捷编辑 & 实时预览",
-                content = "• 在编辑记事时，点击右上角的“眼睛/画笔”切换图标，即可在“编辑模式”与“预览模式”之间无缝切换。\n• 输入框上方集成了 Markdown 快捷工具栏（支持标题、加粗、斜体、行内代码、引用、分割线和代码块），当输入法弹出时，工具栏会自动升至输入法上方，避免遮挡，提升编辑效率。\n• 精心设计的编辑区已适配软键盘自动缩进（IME Padding），长文输入时可以通过滑动自如查看所有内容。"
+                title = Localization.getString("about_feature_1_title", currentLanguage) ?: "📝 Markdown 快捷编辑",
+                content = Localization.getString("about_feature_1_desc", currentLanguage) ?: "✨ 快捷工具栏：一键插入标题、加粗、引用、代码块，告别繁琐语法。\n✨ 实时预览：点击底部切换按钮，瞬间查看精美的 Markdown 渲染效果。"
             )
 
-            // Usage 2: Native Dynamic Theme
+            // Usage 2: Theme & Layout
             AboutSection(
-                title = "2. Android 动态取色方案",
-                content = "• 默认开启 Android 原生的动态取色方案（Material You）。软件会自动提取您的系统壁纸色彩作为应用主题色，实现全局视觉的一致性。\n• 中国古风元素不体现在生硬的取色上，而是完美融合在界面留白、卡片双线边框、雅致的衬线字体（Serif）排版以及精心雕琢的布局比例中。"
+                title = Localization.getString("about_feature_2_title", currentLanguage) ?: "🎨 个性配色与瀑布流",
+                content = Localization.getString("about_feature_2_desc", currentLanguage) ?: "✨ 护眼卡片：提供多款精心调校的高颜值浅色与暗色笔记配色。\n✨ 智能归类：支持一键智能分配主题，应用自动记忆您的折叠习惯。\n✨ 优雅排版：双列瀑布流布局让长短不同的记事错落有致，美观实用。"
             )
 
             // Usage 3: Home Widget
             AboutSection(
-                title = "3. 桌面小组件 (App Widget)",
-                content = "• 您可以将墨韵记事小组件添加至手机桌面。小组件会实时同步您设置的记事列表，并支持小组件内直接点击“+”添加记事或点击卡片一键直达编辑页面。\n• 在设置页面，您可以自由调节小组件的背景不透明度（0% ~ 100%），轻松搭配各类风格的桌面壁纸。"
+                title = Localization.getString("about_feature_3_title", currentLanguage) ?: "🧩 桌面小组件",
+                content = Localization.getString("about_feature_3_desc", currentLanguage) ?: "✨ 完美百搭：支持 0% - 100% 自由调节背景透明度，自然融入任何桌面壁纸。\n✨ 快捷入口：点击小组件右上角按钮，瞬间直达新建记事页面，灵感不掉线。"
             )
 
-            // Usage 4: WebDAV Backup
+            // Usage 4: Productivity
             AboutSection(
-                title = "4. WebDAV 云备份配置指南",
-                content = "• 墨韵记事支持坚果云、Nextcloud 等标准 WebDAV 云盘进行双向无损备份，保障数据安全。\n• 坚果云配置步骤：\n  1. 登录坚果云网页版，进入“账户信息” -> “安全选项”。\n  2. 在“第三方应用管理”中添加新应用并生成“应用密码”。\n  3. 将服务器地址（通常为 https://dav.jianguoyun.com/dav/）、账号（注册邮箱）以及刚刚生成的应用密码填入本软件的 WebDAV 配置项中。\n  4. 注意：必须使用生成的【应用密码】，直接输入网页登录密码会导致备份失败！"
+                title = Localization.getString("about_feature_4_title", currentLanguage) ?: "🚀 效率倍增工具",
+                content = Localization.getString("about_feature_4_desc", currentLanguage) ?: "✨ 多格式导出：支持一键将笔记生成为长图，或导出为 Word (.doc) 随时分享。\n✨ 自定义模板：长按主页“新建”按钮唤出模板，随时复用您的专属记录格式。\n✨ 全场景新建：支持长按桌面图标、下拉控制中心磁铁，或从外部应用分享文本快捷新建记事。"
             )
 
-            // Usage 5: Share Formats
+            // Usage 5: Backup
             AboutSection(
-                title = "5. 全类型多格式导出分享",
-                content = "• 点击记事编辑页面右上角的“更多设置”入口，您可以一键分享您的笔记：\n  - 【分享为纯文本】：以标准 Markdown 文本形式进行分享。\n  - 【分享为图片】：直接渲染笔记内容，生成一张排版古雅精致、带古风边框的 PNG 图片进行分享。\n  - 【分享为 Word】：生成标准的 DOC 文件进行分享，可在任何办公软件中完美打开编辑。"
+                title = Localization.getString("about_feature_5_title", currentLanguage) ?: "☁️ WebDAV 云端备份",
+                content = Localization.getString("about_feature_5_desc", currentLanguage) ?: "✨ 数据无忧：支持坚果云、Nextcloud 等标准 WebDAV，随时双向备份防丢失。\n✨ 温馨提示：若使用坚果云，请在网页版“安全选项”中生成【应用密码】作为密码填入，切勿直接使用登录密码。"
             )
 
             Spacer(modifier = Modifier.height(24.dp))

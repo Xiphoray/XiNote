@@ -429,7 +429,7 @@ fun SettingsScreen(
                             saveConfig()
                         },
                         label = { Text(Localization.getString("webdav_port", currentLanguage), fontSize = 12.sp) },
-                        placeholder = { Text("例如：8080 (选填)", fontSize = 12.sp) },
+                        placeholder = { Text(Localization.getString("settings_port_hint", currentLanguage) ?: "例如：8080 (选填)", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -657,13 +657,13 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "管理自定义模板",
+                                text = Localization.getString("manage_templates_title", currentLanguage) ?: "管理自定义模板",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "添加或修改内置记事模板",
+                                text = Localization.getString("settings_manage_templates_desc", currentLanguage) ?: "添加或修改内置记事模板",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -699,13 +699,13 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "关于 & 使用指南",
+                                text = Localization.getString("about_title", currentLanguage) ?: "关于 & 使用指南",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "详细了解墨韵记事各项配置与备份指南",
+                                text = Localization.getString("settings_about_desc", currentLanguage) ?: "详细了解墨韵记事各项配置与备份指南",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -713,7 +713,7 @@ fun SettingsScreen(
                     }
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "查看",
+                        contentDescription = Localization.getString("settings_view", currentLanguage) ?: "查看",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )

@@ -140,7 +140,7 @@ fun MainScreen(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { noteToDelete = null },
             title = { Text(Localization.getString("delete", currentLanguage) ?: "删除记事") },
-            text = { Text("确定要删除这条记事吗？删除后将无法恢复。") },
+            text = { Text(Localization.getString("delete_note_desc", currentLanguage)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(
                     onClick = {
@@ -164,27 +164,25 @@ fun MainScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
-            var showTemplateMenu by remember { mutableStateOf(false) }
-            val templates by viewModel.templates.collectAsState()
-            Box(modifier = Modifier.padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())) {
-                androidx.compose.material3.Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    shadowElevation = 6.dp,
-                    modifier = Modifier.size(56.dp)
+            androidx.compose.material3.Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shadowElevation = 6.dp,
+                modifier = Modifier.size(56.dp)
+            ) {
+                var showTemplateMenu by remember { mutableStateOf(false) }
+                val templates by viewModel.templates.collectAsState()
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .combinedClickable(
+                            onClick = { viewModel.navigateToEditNote(null) },
+                            onLongClick = { showTemplateMenu = true }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .combinedClickable(
-                                onClick = { viewModel.navigateToEditNote(null) },
-                                onLongClick = { showTemplateMenu = true }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = Localization.getString("add_note", currentLanguage))
-                    }
+                    Icon(Icons.Default.Add, contentDescription = Localization.getString("add_note", currentLanguage))
                 }
                 androidx.compose.material3.DropdownMenu(
                     expanded = showTemplateMenu,
@@ -203,24 +201,26 @@ fun MainScreen(
             }
         }
     ) { innerPadding ->
+        val templates by viewModel.templates.collectAsState()
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.TopCenter
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .widthIn(max = 800.dp)
                     .padding(innerPadding)
-                    .statusBarsPadding()
             ) {
-            // Search Bar & Header Toolbar
-            Row(
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Search Bar & Header Toolbar
+                    Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
@@ -272,13 +272,13 @@ fun MainScreen(
                         val listLayout by viewModel.listLayout.collectAsState()
                         
                         androidx.compose.material3.DropdownMenuItem(
-                            text = { Text(if (listLayout == 0) "当前: 一列" else "当前: 两列") },
+                            text = { Text(if (listLayout == 0) Localization.getString("current_one_column", currentLanguage) else Localization.getString("current_two_columns", currentLanguage)) },
                             onClick = {
                                 viewModel.setListLayout(context, (listLayout + 1) % 2)
                             }
                         )
                         androidx.compose.material3.DropdownMenuItem(
-                            text = { Text("一键智能分配主题") },
+                            text = { Text(Localization.getString("auto_assign_topic", currentLanguage)) },
                             onClick = {
                                 viewModel.autoAssignTopic(context)
                                 showViewOptions = false
@@ -374,7 +374,9 @@ fun MainScreen(
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(bottom = 4.dp)
+                                modifier = Modifier
+                                    .animateItem()
+                                    .padding(bottom = 4.dp)
                             )
                         }
                         items(pinnedNotes, key = { it.id }) { note ->
@@ -398,6 +400,7 @@ fun MainScreen(
                                 val isCollapsed = collapsedTopics.contains(topic)
                                 Row(
                                     modifier = Modifier
+                                        .animateItem()
                                         .fillMaxWidth()
                                         .clickable { 
                                             viewModel.toggleCollapsedTopic(context, topic)
@@ -406,7 +409,7 @@ fun MainScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = topic,
+                                        text = Localization.getTopicName(topic, currentLanguage),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary,
@@ -430,17 +433,20 @@ fun MainScreen(
                                         onDelete = { noteToDelete = note },
                                         onUpdateNote = { viewModel.insertNote(it) },
                                         currentLanguage = currentLanguage,
-                                        modifier = Modifier.animateItem()
+                                        modifier = Modifier.animateItem(
+                                            fadeOutSpec = null
+                                        )
                                     )
                                 }
                             }
                         }
                     }
                 }
-            }
+            } // End of Column
         }
     }
-}
+    }
+    }
 
     // Widget Customization Dialog
     if (showWidgetSettings) {
@@ -454,16 +460,16 @@ fun MainScreen(
     }
 }
 
-fun getCategoryEmoji(topic: String, title: String, content: String): String {
+fun getCategoryEmoji(topic: String, title: String, content: String, currentLanguage: AppLanguage): String {
     return when (topic) {
-        "工作/代码" -> "💻"
-        "计划/待办" -> "📅"
-        "购物" -> "🛒"
-        "灵感/点子" -> "💡"
-        "情感/纪念日" -> "💖"
-        "财务/理财" -> "💵"
-        "学习" -> "📚"
-        "默认" -> {
+        Localization.getString("topic_work", currentLanguage), "工作/代码" -> "💻"
+        Localization.getString("topic_plan", currentLanguage), "计划/待办" -> "📅"
+        Localization.getString("topic_shopping", currentLanguage), "购物" -> "🛒"
+        Localization.getString("topic_idea", currentLanguage), "灵感/点子" -> "💡"
+        Localization.getString("topic_love", currentLanguage), "情感/纪念日" -> "💖"
+        Localization.getString("topic_finance", currentLanguage), "财务/理财" -> "💵"
+        Localization.getString("topic_study", currentLanguage), "学习" -> "📚"
+        Localization.getString("topic_default", currentLanguage), "默认" -> {
             val text = (title + " " + content).lowercase(Locale.getDefault())
             when {
                 text.contains("code") || text.contains("bug") || text.contains("develop") || text.contains("programming") || text.contains("编程") || text.contains("代码") -> "💻"
@@ -497,8 +503,14 @@ fun NoteCard(
     modifier: Modifier = Modifier
 ) {
     val cardColor = getNoteCardColor(note.colorHex, isDark)
-    val dateFormat = remember { SimpleDateFormat("MM月dd日 HH:mm", Locale.getDefault()) }
-    val categoryEmoji = remember(note.topic, note.title, note.content) { getCategoryEmoji(note.topic, note.title, note.content) }
+    val dateFormat = remember(currentLanguage) {
+        if (currentLanguage == AppLanguage.ZH) {
+            SimpleDateFormat("MM月dd日 HH:mm", Locale.getDefault())
+        } else {
+            SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
+        }
+    }
+    val categoryEmoji = remember(note.topic, note.title, note.content, currentLanguage) { getCategoryEmoji(note.topic, note.title, note.content, currentLanguage) }
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
@@ -613,7 +625,7 @@ fun NoteCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "任务进度: $checked/$total",
+                            text = "${Localization.getString("task_progress", currentLanguage)} $checked/$total",
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
@@ -687,7 +699,7 @@ fun NoteCard(
                 onDismissRequest = { showMenu = false }
             ) {
                 androidx.compose.material3.DropdownMenuItem(
-                    text = { Text(if (note.isPinned) "取消固定" else "固定记事") },
+                    text = { Text(if (note.isPinned) Localization.getString("unpin_note", currentLanguage) else Localization.getString("pin_note", currentLanguage)) },
                     onClick = {
                         onTogglePin()
                         showMenu = false

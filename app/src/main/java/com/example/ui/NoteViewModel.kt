@@ -117,21 +117,22 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
                     }
                 }
             }
-            android.widget.Toast.makeText(context, "一键智能分配主题完成 (更新了 $count 条记事)", android.widget.Toast.LENGTH_SHORT).show()
+            val toastMessage = String.format(Localization.getString("auto_assign_topic_success", currentLanguage.value), count)
+            android.widget.Toast.makeText(context, toastMessage, android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun getAutoTopic(title: String, content: String): String {
         val text = (title + " " + content).lowercase(java.util.Locale.getDefault())
         return when {
-            text.contains("code") || text.contains("bug") || text.contains("develop") || text.contains("编程") || text.contains("代码") -> "工作/代码"
-            text.contains("plan") || text.contains("todo") || text.contains("schedule") || text.contains("meeting") || text.contains("计划") || text.contains("会议") -> "计划/待办"
-            text.contains("shopping") || text.contains("buy") || text.contains("cart") || text.contains("购物") || text.contains("买") -> "购物"
-            text.contains("idea") || text.contains("creative") || text.contains("点子") || text.contains("想法") || text.contains("灵感") -> "灵感/点子"
-            text.contains("love") || text.contains("heart") || text.contains("纪念日") || text.contains("情侣") -> "情感/纪念日"
-            text.contains("finance") || text.contains("money") || text.contains("cost") || text.contains("钱") || text.contains("账单") || text.contains("工资") || text.contains("理财") -> "财务/理财"
-            text.contains("study") || text.contains("learn") || text.contains("read") || text.contains("学习") || text.contains("看书") -> "学习"
-            else -> "默认"
+            text.contains("code") || text.contains("bug") || text.contains("develop") || text.contains("编程") || text.contains("代码") -> Localization.getString("topic_work", currentLanguage.value) ?: "工作/代码"
+            text.contains("plan") || text.contains("todo") || text.contains("schedule") || text.contains("meeting") || text.contains("计划") || text.contains("会议") -> Localization.getString("topic_plan", currentLanguage.value) ?: "计划/待办"
+            text.contains("shopping") || text.contains("buy") || text.contains("cart") || text.contains("购物") || text.contains("买") -> Localization.getString("topic_shopping", currentLanguage.value) ?: "购物"
+            text.contains("idea") || text.contains("creative") || text.contains("点子") || text.contains("想法") || text.contains("灵感") -> Localization.getString("topic_idea", currentLanguage.value) ?: "灵感/点子"
+            text.contains("love") || text.contains("heart") || text.contains("纪念日") || text.contains("情侣") -> Localization.getString("topic_love", currentLanguage.value) ?: "情感/纪念日"
+            text.contains("finance") || text.contains("money") || text.contains("cost") || text.contains("钱") || text.contains("账单") || text.contains("工资") || text.contains("理财") -> Localization.getString("topic_finance", currentLanguage.value) ?: "财务/理财"
+            text.contains("study") || text.contains("learn") || text.contains("read") || text.contains("学习") || text.contains("看书") -> Localization.getString("topic_study", currentLanguage.value) ?: "学习"
+            else -> Localization.getString("topic_default", currentLanguage.value) ?: "默认"
         }
     }
 

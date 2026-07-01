@@ -18,16 +18,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+import androidx.activity.compose.BackHandler
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageTemplatesScreen(viewModel: NoteViewModel) {
     val context = LocalContext.current
     val templates by viewModel.templates.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
     var editingIndex by remember { mutableStateOf<Int?>(null) }
     
     var showDialog by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf("") }
     var editContent by remember { mutableStateOf("") }
+
+    BackHandler {
+        viewModel.navigateToSettings()
+    }
 
     val onSaveTemplate = {
         val newList = templates.toMutableList()
@@ -46,10 +53,10 @@ fun ManageTemplatesScreen(viewModel: NoteViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("管理自定义模板") },
+                title = { Text(Localization.getString("manage_templates_title", currentLanguage) ?: "管理自定义模板") },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.navigateToSettings() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = Localization.getString("back", currentLanguage))
                     }
                 }
             )
@@ -61,7 +68,7 @@ fun ManageTemplatesScreen(viewModel: NoteViewModel) {
                 editContent = ""
                 showDialog = true
             }) {
-                Icon(Icons.Default.Add, contentDescription = "添加模板")
+                Icon(Icons.Default.Add, contentDescription = Localization.getString("manage_templates_add", currentLanguage))
             }
         }
     ) { innerPadding ->
@@ -84,14 +91,14 @@ fun ManageTemplatesScreen(viewModel: NoteViewModel) {
                                 editContent = template.content
                                 showDialog = true
                             }) {
-                                Icon(Icons.Default.Edit, contentDescription = "编辑")
+                                Icon(Icons.Default.Edit, contentDescription = Localization.getString("edit", currentLanguage))
                             }
                             IconButton(onClick = {
                                 val newList = templates.toMutableList()
                                 newList.removeAt(index)
                                 viewModel.saveTemplates(context, newList)
                             }) {
-                                Icon(Icons.Default.Delete, contentDescription = "删除", tint = MaterialTheme.colorScheme.error)
+                                Icon(Icons.Default.Delete, contentDescription = Localization.getString("delete", currentLanguage), tint = MaterialTheme.colorScheme.error)
                             }
                         }
                     },
@@ -110,13 +117,13 @@ fun ManageTemplatesScreen(viewModel: NoteViewModel) {
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text(if (editingIndex == null) "添加模板" else "编辑模板") },
+            title = { Text(if (editingIndex == null) (Localization.getString("manage_templates_add", currentLanguage) ?: "添加模板") else (Localization.getString("manage_templates_edit", currentLanguage) ?: "编辑模板")) },
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = editName,
                         onValueChange = { editName = it },
-                        label = { Text("模板名称") },
+                        label = { Text(Localization.getString("manage_templates_name", currentLanguage) ?: "模板名称") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -124,7 +131,7 @@ fun ManageTemplatesScreen(viewModel: NoteViewModel) {
                     OutlinedTextField(
                         value = editContent,
                         onValueChange = { editContent = it },
-                        label = { Text("模板内容 (Markdown)") },
+                        label = { Text(Localization.getString("manage_templates_content", currentLanguage) ?: "模板内容 (Markdown)") },
                         modifier = Modifier.fillMaxWidth().height(200.dp),
                         maxLines = 10
                     )
@@ -132,12 +139,12 @@ fun ManageTemplatesScreen(viewModel: NoteViewModel) {
             },
             confirmButton = {
                 TextButton(onClick = onSaveTemplate) {
-                    Text("保存")
+                    Text(Localization.getString("save", currentLanguage) ?: "保存")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text("取消")
+                    Text(Localization.getString("cancel", currentLanguage) ?: "取消")
                 }
             }
         )
