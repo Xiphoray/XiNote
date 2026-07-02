@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -210,7 +211,7 @@ fun SettingsScreen(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(40.dp)
+                                    .defaultMinSize(minHeight = 40.dp)
                                     .background(itemBgColor, RoundedCornerShape(10.dp))
                                     .border(
                                         width = 1.dp,
@@ -220,14 +221,17 @@ fun SettingsScreen(
                                     .clip(RoundedCornerShape(10.dp))
                                     .clickable {
                                         viewModel.changeTheme(context, themeKey)
-                                    },
+                                    }
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = Localization.getString(stringKey, currentLanguage),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = itemTextColor
+                                    color = itemTextColor,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    lineHeight = 14.sp
                                 )
                             }
                         }
@@ -407,7 +411,7 @@ fun SettingsScreen(
                             saveConfig()
                         },
                         label = { Text(Localization.getString("webdav_url", currentLanguage), fontSize = 12.sp) },
-                        placeholder = { Text("https://dav.jianguoyun.com/dav/", fontSize = 12.sp) },
+                        placeholder = { Text(Localization.getString("webdav_url_hint", currentLanguage), fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -451,7 +455,7 @@ fun SettingsScreen(
                             saveConfig()
                         },
                         label = { Text(Localization.getString("webdav_username", currentLanguage), fontSize = 12.sp) },
-                        placeholder = { Text("your_email@example.com", fontSize = 12.sp) },
+                        placeholder = { Text(Localization.getString("webdav_username_hint", currentLanguage), fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -472,7 +476,7 @@ fun SettingsScreen(
                             saveConfig()
                         },
                         label = { Text(Localization.getString("webdav_path", currentLanguage), fontSize = 12.sp) },
-                        placeholder = { Text("/backup/notes", fontSize = 12.sp) },
+                        placeholder = { Text(Localization.getString("webdav_path_hint", currentLanguage), fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(

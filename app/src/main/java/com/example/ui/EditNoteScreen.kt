@@ -173,7 +173,7 @@ fun EditNoteScreen(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text(Localization.getString("delete", currentLanguage) ?: "删除记事") },
-            text = { Text("确定要删除这条记事吗？删除后将无法恢复。") },
+            text = { Text(Localization.getString("delete_note_desc", currentLanguage)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(
                     onClick = {
