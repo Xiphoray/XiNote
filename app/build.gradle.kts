@@ -115,7 +115,7 @@ dependencies {
   implementation(libs.markwon.tasklist)
   implementation(libs.markwon.html)
   implementation(libs.markwon.image)
-  implementation("net.java.dev.jna:jna:5.13.0@aar")
+  implementation("net.java.dev.jna:jna:5.2.0@aar")
   implementation("com.alphacephei:vosk-android:0.3.47")
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
