@@ -168,10 +168,11 @@ fun EditNoteScreen(
     var isPinned by rememberSaveable(noteId) { mutableStateOf(note?.isPinned ?: false) }
     var showInWidget by rememberSaveable(noteId) { mutableStateOf(note?.showInWidget ?: true) }
     
-    val sttProvider = remember { com.example.stt.STTFactory.createProvider(context) }
+    val sttEngine by viewModel.sttEngine.collectAsState()
+    val sttProvider = remember(sttEngine) { com.example.stt.STTFactory.createProvider(context, sttEngine) }
     var isListening by remember { mutableStateOf(false) }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(sttProvider) {
         onDispose {
             sttProvider.destroy()
         }

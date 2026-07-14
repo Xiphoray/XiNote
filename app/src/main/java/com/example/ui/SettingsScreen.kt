@@ -75,6 +75,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Mic
 import com.example.data.WebDavConfig
 import kotlinx.coroutines.launch
 
@@ -89,6 +90,7 @@ fun SettingsScreen(
     val currentLanguage by viewModel.currentLanguage.collectAsState()
     val widgetOpacity by viewModel.widgetOpacity.collectAsState()
     val appTheme by viewModel.currentTheme.collectAsState()
+    val sttEngine by viewModel.sttEngine.collectAsState()
 
     val webDavConfig = remember { viewModel.getWebDavConfig() }
     var url by remember { mutableStateOf(webDavConfig.url) }
@@ -360,6 +362,93 @@ fun SettingsScreen(
                         valueRange = 0f..100f,
                         modifier = Modifier.padding(top = 4.dp)
                     )
+                }
+            }
+
+            // SECTION: Speech Recognition Engine
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = Localization.getString("stt_engine", currentLanguage),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            0 to "stt_native",
+                            1 to "stt_vosk"
+                        ).forEach { (engineValue, stringKey) ->
+                            val isSelected = sttEngine == engineValue
+                            val itemBgColor = if (isSelected) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            }
+                            val itemTextColor = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .defaultMinSize(minHeight = 40.dp)
+                                    .background(itemBgColor, RoundedCornerShape(10.dp))
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        if (engineValue == 0 && !android.speech.SpeechRecognizer.isRecognitionAvailable(context)) {
+                                            android.widget.Toast.makeText(context, "Native speech recognition is not available on this device", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            viewModel.changeSttEngine(context, engineValue)
+                                        }
+                                    }
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = Localization.getString(stringKey, currentLanguage),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = itemTextColor,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
