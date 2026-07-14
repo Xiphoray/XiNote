@@ -94,6 +94,9 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.Redo
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicNone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -164,6 +167,67 @@ fun EditNoteScreen(
     var topic by rememberSaveable(noteId) { mutableStateOf(note?.topic ?: "默认") }
     var isPinned by rememberSaveable(noteId) { mutableStateOf(note?.isPinned ?: false) }
     var showInWidget by rememberSaveable(noteId) { mutableStateOf(note?.showInWidget ?: true) }
+    
+    val sttProvider = remember { com.example.stt.STTFactory.createProvider(context) }
+    var isListening by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            sttProvider.destroy()
+        }
+    }
+
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            sttProvider.startListening(
+                onResult = { text ->
+                    val currentText = contentValue.text
+                    val cursorPosition = contentValue.selection.start
+                    val textToInsert = if (currentText.isEmpty() || cursorPosition == 0) text else " $text"
+                    val newText = StringBuilder(currentText).insert(cursorPosition, textToInsert).toString()
+                    val newCursorPos = cursorPosition + textToInsert.length
+                    updateContent(TextFieldValue(newText, androidx.compose.ui.text.TextRange(newCursorPos)))
+                },
+                onError = { error ->
+                    android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_SHORT).show()
+                },
+                onStateChange = { listening ->
+                    isListening = listening
+                }
+            )
+        } else {
+            android.widget.Toast.makeText(context, "Microphone permission denied", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun startVoiceInput() {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (isListening) {
+                sttProvider.stopListening()
+            } else {
+                sttProvider.startListening(
+                    onResult = { text ->
+                        val currentText = contentValue.text
+                        val cursorPosition = contentValue.selection.start
+                        val textToInsert = if (currentText.isEmpty() || cursorPosition == 0) text else " $text"
+                        val newText = StringBuilder(currentText).insert(cursorPosition, textToInsert).toString()
+                        val newCursorPos = cursorPosition + textToInsert.length
+                        updateContent(TextFieldValue(newText, androidx.compose.ui.text.TextRange(newCursorPos)))
+                    },
+                    onError = { error ->
+                        android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    onStateChange = { listening ->
+                        isListening = listening
+                    }
+                )
+            }
+        } else {
+            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+        }
+    }
     
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -417,7 +481,9 @@ fun EditNoteScreen(
                             onContentChange = { updateContent(it) },
                             noteCardColor = noteCardColor,
                             onInsertMarkdown = { insertMarkdown(it) },
-                            currentLanguage = currentLanguage
+                            currentLanguage = currentLanguage,
+                            isListening = isListening,
+                            onVoiceInputClick = { startVoiceInput() }
                         )
                     }
 
@@ -484,7 +550,9 @@ fun EditNoteScreen(
                             onContentChange = { updateContent(it) },
                             noteCardColor = noteCardColor,
                             onInsertMarkdown = { insertMarkdown(it) },
-                            currentLanguage = currentLanguage
+                            currentLanguage = currentLanguage,
+                            isListening = isListening,
+                            onVoiceInputClick = { startVoiceInput() }
                         )
                     } else {
                         // Preview Panel
@@ -775,7 +843,9 @@ fun EditorCardLayout(
     onContentChange: (TextFieldValue) -> Unit,
     noteCardColor: Color,
     onInsertMarkdown: (String) -> Unit,
-    currentLanguage: AppLanguage
+    currentLanguage: AppLanguage,
+    isListening: Boolean = false,
+    onVoiceInputClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxSize(),
@@ -856,26 +926,46 @@ fun EditorCardLayout(
             Spacer(modifier = Modifier.height(6.dp))
 
             // Scrollable Note Markdown content input
-            OutlinedTextField(
-                value = contentValue,
-                onValueChange = onContentChange,
-                placeholder = { Text(Localization.getString("note_content_placeholder", currentLanguage), fontSize = 14.sp) },
-                textStyle = TextStyle(
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.Monospace,
-                    lineHeight = 20.sp
-                ),
+            androidx.compose.foundation.layout.Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                visualTransformation = MarkdownVisualTransformation(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
+                    .weight(1f)
+            ) {
+                OutlinedTextField(
+                    value = contentValue,
+                    onValueChange = onContentChange,
+                    placeholder = { Text(Localization.getString("note_content_placeholder", currentLanguage), fontSize = 14.sp) },
+                    textStyle = TextStyle(
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 20.sp
+                    ),
+                    modifier = Modifier.fillMaxSize(),
+                    visualTransformation = MarkdownVisualTransformation(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
                 )
-            )
+
+                // Voice Input Floating Button
+                androidx.compose.material3.FloatingActionButton(
+                    onClick = onVoiceInputClick,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 16.dp, end = 16.dp),
+                    containerColor = if (isListening) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = if (isListening) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = androidx.compose.foundation.shape.CircleShape
+                ) {
+                    Icon(
+                        imageVector = if (isListening) Icons.Default.Mic else Icons.Default.MicNone,
+                        contentDescription = if (isListening) "Stop Listening" else "Start Voice Input"
+                    )
+                }
+            }
         }
     }
 }
