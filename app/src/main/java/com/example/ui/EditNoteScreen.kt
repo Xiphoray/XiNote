@@ -167,66 +167,6 @@ fun EditNoteScreen(
     var topic by rememberSaveable(noteId) { mutableStateOf(note?.topic ?: "默认") }
     var isPinned by rememberSaveable(noteId) { mutableStateOf(note?.isPinned ?: false) }
     var showInWidget by rememberSaveable(noteId) { mutableStateOf(note?.showInWidget ?: true) }
-    var sttErrorDialog by remember { mutableStateOf<String?>(null) }
-    
-    val sttEngine by viewModel.sttEngine.collectAsState()
-    val sttProvider = remember(sttEngine) { com.example.stt.STTFactory.createProvider(context, sttEngine) }
-    var isListening by remember { mutableStateOf(false) }
-
-    DisposableEffect(sttProvider) {
-        onDispose {
-            sttProvider.destroy()
-        }
-    }
-
-    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            sttProvider.startListening(
-                onResult = { text ->
-                    val currentText = contentValue.text
-                    val cursorPosition = contentValue.selection.start
-                    val textToInsert = if (currentText.isEmpty() || cursorPosition == 0) text else " $text"
-                    val newText = StringBuilder(currentText).insert(cursorPosition, textToInsert).toString()
-                    val newCursorPos = cursorPosition + textToInsert.length
-                    updateContent(TextFieldValue(newText, androidx.compose.ui.text.TextRange(newCursorPos)))
-                },
-                onError = { error -> sttErrorDialog = error },
-                onStateChange = { listening ->
-                    isListening = listening
-                }
-            )
-        } else {
-            android.widget.Toast.makeText(context, "Microphone permission denied", android.widget.Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    fun startVoiceInput() {
-        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            if (isListening) {
-                sttProvider.stopListening()
-            } else {
-                sttProvider.startListening(
-                    onResult = { text ->
-                        val currentText = contentValue.text
-                        val cursorPosition = contentValue.selection.start
-                        val textToInsert = if (currentText.isEmpty() || cursorPosition == 0) text else " $text"
-                        val newText = StringBuilder(currentText).insert(cursorPosition, textToInsert).toString()
-                        val newCursorPos = cursorPosition + textToInsert.length
-                        updateContent(TextFieldValue(newText, androidx.compose.ui.text.TextRange(newCursorPos)))
-                    },
-                    onError = { error -> sttErrorDialog = error },
-                    onStateChange = { listening ->
-                        isListening = listening
-                    }
-                )
-            }
-        } else {
-            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-        }
-    }
-    
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -365,25 +305,6 @@ fun EditNoteScreen(
         lastSaveTime = System.currentTimeMillis()
     }
 
-    if (sttErrorDialog != null) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { sttErrorDialog = null },
-            title = { androidx.compose.material3.Text("Voice Input Error") },
-            text = { 
-                androidx.compose.foundation.lazy.LazyColumn {
-                    item {
-                        androidx.compose.material3.Text(sttErrorDialog ?: "")
-                    }
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { sttErrorDialog = null }) {
-                    androidx.compose.material3.Text("OK")
-                }
-            }
-        )
-    }
-
     Scaffold(
         modifier = modifier
             .fillMaxSize(),
@@ -498,9 +419,7 @@ fun EditNoteScreen(
                             onContentChange = { updateContent(it) },
                             noteCardColor = noteCardColor,
                             onInsertMarkdown = { insertMarkdown(it) },
-                            currentLanguage = currentLanguage,
-                            isListening = isListening,
-                            onVoiceInputClick = { startVoiceInput() }
+                            currentLanguage = currentLanguage
                         )
                     }
 
@@ -567,9 +486,7 @@ fun EditNoteScreen(
                             onContentChange = { updateContent(it) },
                             noteCardColor = noteCardColor,
                             onInsertMarkdown = { insertMarkdown(it) },
-                            currentLanguage = currentLanguage,
-                            isListening = isListening,
-                            onVoiceInputClick = { startVoiceInput() }
+                            currentLanguage = currentLanguage
                         )
                     } else {
                         // Preview Panel
@@ -860,9 +777,7 @@ fun EditorCardLayout(
     onContentChange: (TextFieldValue) -> Unit,
     noteCardColor: Color,
     onInsertMarkdown: (String) -> Unit,
-    currentLanguage: AppLanguage,
-    isListening: Boolean = false,
-    onVoiceInputClick: () -> Unit = {}
+    currentLanguage: AppLanguage
 ) {
     Card(
         modifier = Modifier.fillMaxSize(),
@@ -967,21 +882,7 @@ fun EditorCardLayout(
                     )
                 )
 
-                // Voice Input Floating Button
-                androidx.compose.material3.FloatingActionButton(
-                    onClick = onVoiceInputClick,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 16.dp, end = 16.dp),
-                    containerColor = if (isListening) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = if (isListening) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
-                    shape = androidx.compose.foundation.shape.CircleShape
-                ) {
-                    Icon(
-                        imageVector = if (isListening) Icons.Default.Mic else Icons.Default.MicNone,
-                        contentDescription = if (isListening) "Stop Listening" else "Start Voice Input"
-                    )
-                }
+
             }
         }
     }

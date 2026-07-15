@@ -68,29 +68,17 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
     val listLayout = MutableStateFlow(1) // 0: 1 col, 1: 2 col, 2: staggered
     val collapsedTopics = MutableStateFlow<Set<String>>(emptySet())
-    val sttEngine = MutableStateFlow(0) // 0: Native, 1: Vosk
 
     fun loadPreferences(context: Context) {
         loadWidgetOpacity(context)
         loadLanguage(context)
         loadTheme(context)
         loadTemplates(context)
-        loadSttEngine(context)
+        
         val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
         listLayout.value = sp.getInt("list_layout", 1)
         val savedCollapsed = sp.getStringSet("collapsed_topics", emptySet())
         collapsedTopics.value = savedCollapsed ?: emptySet()
-    }
-
-    fun loadSttEngine(context: Context) {
-        val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
-        sttEngine.value = sp.getInt("stt_engine", 0)
-    }
-
-    fun changeSttEngine(context: Context, engine: Int) {
-        sttEngine.value = engine
-        val sp = context.getSharedPreferences("widget_settings", Context.MODE_PRIVATE)
-        sp.edit().putInt("stt_engine", engine).apply()
     }
 
     fun setListLayout(context: Context, layout: Int) {
