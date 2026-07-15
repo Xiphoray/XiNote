@@ -153,6 +153,14 @@ abstract class DownloadAndExtractModelTask : DefaultTask() {
     @org.gradle.api.tasks.TaskAction
     fun download() {
         val targetDir = destDir.get().asFile
+        val finalMdl = File(targetDir, "am/final.mdl")
+        
+        // Validation: If model exists but is suspiciously small (e.g., < 15MB for final.mdl), it might be corrupted by git lfs or zip extraction.
+        if (targetDir.exists() && finalMdl.exists() && finalMdl.length() < 10000000L) {
+            println("Model seems corrupted or incomplete (final.mdl size: ${finalMdl.length()} bytes). Re-downloading...")
+            targetDir.deleteRecursively()
+        }
+
         if (!targetDir.exists() || targetDir.listFiles()?.isEmpty() == true) {
             println("Downloading and extracting Vosk model...")
             targetDir.parentFile.mkdirs()
@@ -179,6 +187,8 @@ abstract class DownloadAndExtractModelTask : DefaultTask() {
                 extractedDir.renameTo(targetDir)
             }
             println("Model downloaded and extracted successfully.")
+        } else {
+            println("Vosk model already exists and seems valid.")
         }
     }
 }

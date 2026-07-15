@@ -1,0 +1,8 @@
+*.mdl binary
+*.fst binary
+*.int binary
+*.dubm binary
+*.ie binary
+*.mat binary
+*.stats binary
+*.conf binary
