@@ -167,6 +167,7 @@ fun EditNoteScreen(
     var topic by rememberSaveable(noteId) { mutableStateOf(note?.topic ?: "默认") }
     var isPinned by rememberSaveable(noteId) { mutableStateOf(note?.isPinned ?: false) }
     var showInWidget by rememberSaveable(noteId) { mutableStateOf(note?.showInWidget ?: true) }
+    var sttErrorDialog by remember { mutableStateOf<String?>(null) }
     
     val sttEngine by viewModel.sttEngine.collectAsState()
     val sttProvider = remember(sttEngine) { com.example.stt.STTFactory.createProvider(context, sttEngine) }
@@ -191,9 +192,7 @@ fun EditNoteScreen(
                     val newCursorPos = cursorPosition + textToInsert.length
                     updateContent(TextFieldValue(newText, androidx.compose.ui.text.TextRange(newCursorPos)))
                 },
-                onError = { error ->
-                    android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_SHORT).show()
-                },
+                onError = { error -> sttErrorDialog = error },
                 onStateChange = { listening ->
                     isListening = listening
                 }
@@ -217,9 +216,7 @@ fun EditNoteScreen(
                         val newCursorPos = cursorPosition + textToInsert.length
                         updateContent(TextFieldValue(newText, androidx.compose.ui.text.TextRange(newCursorPos)))
                     },
-                    onError = { error ->
-                        android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_SHORT).show()
-                    },
+                    onError = { error -> sttErrorDialog = error },
                     onStateChange = { listening ->
                         isListening = listening
                     }
@@ -366,6 +363,25 @@ fun EditNoteScreen(
             selection = androidx.compose.ui.text.TextRange(nextSelectionCursor)
         )
         lastSaveTime = System.currentTimeMillis()
+    }
+
+    if (sttErrorDialog != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { sttErrorDialog = null },
+            title = { androidx.compose.material3.Text("Voice Input Error") },
+            text = { 
+                androidx.compose.foundation.lazy.LazyColumn {
+                    item {
+                        androidx.compose.material3.Text(sttErrorDialog ?: "")
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { sttErrorDialog = null }) {
+                    androidx.compose.material3.Text("OK")
+                }
+            }
+        )
     }
 
     Scaffold(

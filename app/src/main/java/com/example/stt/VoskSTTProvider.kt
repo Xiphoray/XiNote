@@ -22,12 +22,13 @@ class VoskSTTProvider(private val context: Context) : STTProvider {
 
     private fun initModel() {
         Thread {
+            var resultPathDir: java.io.File? = null
             try {
                 org.vosk.LibVosk.setLogLevel(org.vosk.LogLevel.INFO)
                 val assetManager = context.assets
                 val externalFilesDir = context.getExternalFilesDir(null) ?: throw Exception("External files dir is null")
                 val targetDir = java.io.File(externalFilesDir, "model")
-                val resultPathDir = java.io.File(targetDir, "model-cn")
+                resultPathDir = java.io.File(targetDir, "model-cn")
                 
                 if (!resultPathDir.exists()) {
                     fun copyAssetDir(path: String, outPath: java.io.File) {
@@ -58,6 +59,26 @@ class VoskSTTProvider(private val context: Context) : STTProvider {
                     android.widget.Toast.makeText(context, "Vosk Model Loaded", android.widget.Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Throwable) {
+                var fileList = ""
+                try {
+                    val copiedFiles = mutableListOf<String>()
+                    fun listFilesRec(dir: java.io.File, prefix: String = "") {
+                        dir.listFiles()?.forEach { 
+                            if (it.isDirectory) {
+                                listFilesRec(it, "$prefix${it.name}/")
+                            } else {
+                                copiedFiles.add("$prefix${it.name} (${it.length()})")
+                            }
+                        }
+                    }
+                    if (resultPathDir?.exists() == true) {
+                        listFilesRec(resultPathDir!!)
+                        fileList = "Files: " + copiedFiles.joinToString(", ")
+                    } else {
+                        fileList = "Dir does not exist"
+                    }
+                } catch(ignored: Exception) {}
+            
                 var logStr = "Logs:\n"
                 try {
                     val process = Runtime.getRuntime().exec("logcat -d -v time")
@@ -65,14 +86,14 @@ class VoskSTTProvider(private val context: Context) : STTProvider {
                     val logs = mutableListOf<String>()
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
-                        if (line?.contains("VOSK") == true || line?.contains("kaldi") == true || line?.contains("Vosk") == true) {
+                        if (line?.contains("VOSK") == true || line?.contains("kaldi") == true || line?.contains("Vosk") == true || line?.contains("org.vosk") == true) {
                             logs.add(line!!)
                         }
                     }
-                    logStr += logs.takeLast(10).joinToString("\n")
+                    logStr += logs.takeLast(15).joinToString("\n")
                 } catch (ignored: Exception) {}
                 
-                val fullError = "${e.message}\n$logStr"
+                val fullError = "${e.message}\n$fileList\n$logStr"
                 modelError = fullError
                 android.util.Log.e("VoskSTT", "Error initializing model: ", e)
                 android.os.Handler(android.os.Looper.getMainLooper()).post {
